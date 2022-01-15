@@ -10,6 +10,7 @@ import time
 import numpy as np
 import time
 import pytesseract
+from skimage import measure, morphology, feature, color, filters
 
 pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
@@ -18,6 +19,10 @@ shooting_zone = (230, 720, 10, 440)
 launch_button_loc = (650, 712, 132, 310)
 supply_drop_text_loc = (92, 132, 110, 330)
 map_button_loc = (786, 222)
+
+special_event_color = (0, 180, 0, 50, 255, 30)
+supply_drop_color = (200, 100, 0, 255, 160, 60)
+
 
 
 def supply_drop_or_dino(background):
@@ -59,10 +64,72 @@ def locate_x_button(background):
         return 712 + int(np.mean(y)), int(np.mean(x))
     return None
 
-def shoot_dino():
+def detect_supply_drop(background):
+    """Finds supply drop by simply thresholding it but there might be false positives"""
+    
+    pos = []
+
+    # threshold + clean up
+    background_cropped = background[shooting_zone[0]:shooting_zone[1],
+                                    shooting_zone[2]:shooting_zone[3]]
+    print(background_cropped.shape)
+    t1 = (background_cropped[:,:,0] >= supply_drop_color[0]) * \
+        (background_cropped[:,:,1] >= supply_drop_color[1]) * \
+        (background_cropped[:,:,2] >= supply_drop_color[2]) * \
+        (background_cropped[:,:,0] <= supply_drop_color[3]) * \
+        (background_cropped[:,:,1] <= supply_drop_color[4]) * \
+        (background_cropped[:,:,2] <= supply_drop_color[5])
+    t2 = (background_cropped[:,:,0] >= special_event_color[0]) * \
+        (background_cropped[:,:,1] >= special_event_color[1]) * \
+        (background_cropped[:,:,2] >= special_event_color[2]) * \
+        (background_cropped[:,:,0] <= special_event_color[3]) * \
+        (background_cropped[:,:,1] <= special_event_color[4]) * \
+        (background_cropped[:,:,2] <= special_event_color[5])
+    mask = np.logical_or(t1, t2).astype(np.uint8)
+    mask = morphology.binary_closing(mask, np.ones((5,5)))
+    
+    # connected components
+    labels = measure.label(mask, background=0, connectivity=2)
+    if DEBUG:
+        print(labels.max(), labels.min())
+        plt.figure(4, figsize=(4, 8))
+        # plt.clf()
+        # plt.cla()
+        plt.imshow(labels)
+
+    # find center of mass
+    for label in range(1, labels.max()+1):
+        rows, cols = np.where(labels == label)
+        if len(rows) > 20:
+            pos.append([shooting_zone[0] + int(np.mean(rows)), shooting_zone[2] + int(np.mean(cols))])
+
+    return pos
+
+def detect_dino(tmp, background):
+    """Finds the location of dino but there are false positives need more cleaning"""
+    
+    # edges = feature.canny(color.rgb2gray(background))
+    edges = filters.sobel(color.rgb2gray(background))
+
+    gray1 = color.rgb2gray(background).astype(float)
+    gray2 = color.rgb2gray(tmp).astype(float)
+
+    diff = np.abs(gray1 - gray2)
+    diff[diff < 0.1] = 0
+
+    # mask = morphology.binary_opening(edges, np.ones((3,3)))
+    # mask = morphology.binary_closing(mask, np.ones((5,5)))
+    if DEBUG:
+        plt.figure(5, figsize=(4, 8))
+        # plt.clf()
+        # plt.cla()
+        plt.imshow(diff)    
+
+def determine_state():
+    """After you click determine is this supply drop/dino/coin chase etc."""
     pass
 
-def draw_rectangles():
+def shoot_dino():
     pass
 
 
@@ -73,6 +140,7 @@ print('Press Ctrl-C to quit.')
 
 x, y, w, h = -1, -1, -1, -1
 
+tmp = None
 try:
     while True:
         # set location of the app
@@ -94,6 +162,10 @@ try:
                 state = supply_drop_or_dino(background)
                 if state == 1:
                     pass
+
+                supply_drop_pos = detect_supply_drop(background)
+                if tmp is not None:
+                    dino_pos = detect_dino(tmp, background)
 
                 plt.figure(1, figsize=(4, 8))
                 plt.clf()
@@ -117,11 +189,15 @@ try:
                 pos = locate_x_button(background)
                 if pos:
                     plt.plot(pos[1], pos[0], ".", color="k", markersize=15)
+                if supply_drop_pos:
+                    for p in supply_drop_pos:
+                        plt.plot(p[1], p[0], "*", color="k", markersize=15)
+
                 plt.plot(map_button_loc[1], map_button_loc[0], "x", color="k", markersize=15)
 
-        
+
                 plt.tight_layout()
-                plt.pause(1)
+                plt.pause(0.1)
                 plt.draw()
 
             # move the mouse
@@ -172,6 +248,8 @@ try:
                         
                 pyautogui.moveTo(x + w//2, y + h//2)
                 pyautogui.scroll(180)
+
+            tmp = background.copy()
 
         time.sleep(0.1)
 except KeyboardInterrupt:
