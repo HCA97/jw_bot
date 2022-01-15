@@ -1,0 +1,5 @@
+matplotlib=2.0.2
+numpy=1.19.5+mkl
+scikit-image=0.17.2
+PyAutoGUI=0.9.53
+pytesseract=0.3.8
