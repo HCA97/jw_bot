@@ -59,8 +59,7 @@ if __name__ == "__main__":
                         pyautogui.click(x=bot.x+bot.w//2, y=bot.y+bot.h//2) 
                         time.sleep(2.5) 
                         pyautogui.click(x=bot.x+bot.w//2, y=bot.y+bot.h//2) 
-                        something_there = True
-
+                        
                         background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
                         state = bot.determine_state(background)
                         if state == "coin":
@@ -68,7 +67,8 @@ if __name__ == "__main__":
                             pos = pos if pos else bot.map_button_loc
                             pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
                             time.sleep(1)  
-                        break
+                        else:
+                            something_there = True
                     else:
                         pos = bot.locate_x_button(background)
                         pos = pos if pos else bot.map_button_loc
@@ -76,33 +76,32 @@ if __name__ == "__main__":
                         time.sleep(1)     
 
                 # get supply drops
-                if not something_there:
-                    something_there = bot.collect_supply_drop()                                      
+                something_there = bot.collect_supply_drop() or something_there                                   
 
 
                 # get dinos
-                # background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                # dino_pos = bot.detect_dino(background)
-                # for pos in dino_pos:
-                #     # pos = dino_pos[0]
-                #     pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                #     time.sleep(1)
+                background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
+                dino_pos = bot.detect_dino(background)
+                for pos in dino_pos:
+                    # pos = dino_pos[0]
+                    pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
+                    time.sleep(1)
                     
-                #     background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                #     state = bot.determine_state(background)
-                #     if state == "dino":
-                #         cx = (bot.launch_button_loc[2] + bot.launch_button_loc[3]) / 2
-                #         cy = (bot.launch_button_loc[0] + bot.launch_button_loc[1]) / 2
-                #         pyautogui.click(x=bot.x+cx, y=bot.y+cy)  
-                #         time.sleep(3)
-                #         bot.shoot_dino()
-                #         something_there = True
-                #         break
-                #     else:
-                #         pos = bot.locate_x_button(background)
-                #         pos = pos if pos else bot.map_button_loc
-                #         pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                #         time.sleep(1)  
+                    background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
+                    state = bot.determine_state(background)
+                    if state == "dino":
+                        cx = (bot.launch_button_loc[2] + bot.launch_button_loc[3]) / 2
+                        cy = (bot.launch_button_loc[0] + bot.launch_button_loc[1]) / 2
+                        pyautogui.click(x=bot.x+cx, y=bot.y+cy)  
+                        time.sleep(3)
+                        bot.shoot_dino()
+                        something_there = True
+                        break
+                    else:
+                        pos = bot.locate_x_button(background)
+                        pos = pos if pos else bot.map_button_loc
+                        pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
+                        time.sleep(1)  
 
                 if number_of_scrolls > max_scrolls:
                     # move location

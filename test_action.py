@@ -58,14 +58,15 @@ if __name__ == "__main__":
             # take photo
             if bot.loc:
                 background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                pos = bot.detect_supply_drop(background)
+                bot.shoot_dino()
                 # pos = bot.detect_coins(background)
-                bot.collect_supply_drop()
+                # bot.collect_supply_drop()
 
+                from skimage import measure, morphology, feature, color, filters
 
 
                 plt.figure(3)
-                plt.imshow(background)
+                plt.imshow(color.rgb2gray(background))
                 plot_pos(pos)
                 show_regions(bot.shooting_zone, bot.supply_drop_text_loc, bot.launch_button_loc)
                 plt.show()

@@ -1,3 +1,4 @@
+from statistics import median
 import pyautogui
 import keyboard
 
@@ -9,6 +10,7 @@ import time
 import pytesseract
 from skimage import measure, morphology, feature, color, filters
 from scipy import ndimage
+
 
 # https://stackoverflow.com/questions/50655738/how-do-i-resolve-a-tesseractnotfounderror
 pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
@@ -141,54 +143,44 @@ class Bot:
     def detect_dino(self, background):
         """Finds the location of dino but there are false positives need more cleaning"""
 
+        pos = []
+
         # convert background gray
-        background_gray = color.rgb2gray(background)
-        background_cropped = background_gray[self.shooting_zone[0]:self.shooting_zone[1],
-                                             self.shooting_zone[2]:self.shooting_zone[3]]
-        background_cropped_ = filters.median(background_cropped, np.ones((7, 7))) 
-        # background_cropped_ = morphology.opening(background_cropped, np.ones((10, 10))) 
- 
-        diff = background_cropped - background_cropped_
-        mask = (np.abs(diff) > 0.0099).astype(np.uint8)
-        mask = morphology.opening(mask, np.ones((5, 5))) 
+        background_cropped = background[self.shooting_zone[0]:self.shooting_zone[1],
+                                        self.shooting_zone[2]:self.shooting_zone[3]]
 
-        # apply local binary pattern
-        print("local binary pattern")
+        edges = filters.sobel(background_cropped)
+
+        mask = (edges[:,:,0] <= 0.089) * \
+                (edges[:,:,1] <= 0.089) * \
+                (edges[:,:,2] <= 0.089) 
+        mask = filters.median(mask, np.ones((3, 3)))
+        mask = morphology.binary_closing(mask, np.ones((5, 5)))
         
-        # texture law shit
-        L5 = np.array([[1], [4], [6], [4], [1]]) # Level
-        E5 = np.array([[-1], [-2], [0], [2], [1]]) # Edge
-        S5 = np.array([[-1], [0], [2], [0], [-1]]) # Spot
-        R5 = np.array([[1], [-4], [6], [-4], [1]]) # Ripple
+        # connected components
+        labels = measure.label(mask, background=0, connectivity=2)
+        dist = ndimage.distance_transform_edt(mask)
 
-        print(L5.shape)
-        h1 = ndimage.convolve(background_cropped, E5.dot(E5.T))
-        h2 = ndimage.convolve(background_cropped, S5.dot(S5.T))
-        h3 = ndimage.convolve(background_cropped, R5.dot(R5.T))
-        # h4 = np.convolve(background_cropped, E5.dot(E5.T))
-        # h5 = np.convolve(background_cropped, E5.dot(E5.T))
-        # h6 = np.convolve(background_cropped, E5.dot(E5.T))
-        # h7 = np.convolve(background_cropped, E5.dot(E5.T))
-        # h8 = np.convolve(background_cropped, E5.dot(E5.T))
-        # h9 = np.convolve(background_cropped, E5.dot(E5.T))
+        # find center of mass
+        for label in range(1, labels.max()+1):
+            label_dist = dist * (labels == label).astype(np.uint8)
+            row, col = np.unravel_index(label_dist.argmax(), label_dist.shape)
+            pos.append([self.shooting_zone[0] + row, 
+                        self.shooting_zone[2] + col])
 
-        # # kmeans?
-
-        print("done")
-        # filter stuff
-        import matplotlib.pyplot as plt
-        plt.figure(1)
-        plt.imshow(diff)
-        plt.figure(4)
-        plt.imshow(mask)
+        # import matplotlib.pyplot as plt
+        # plt.figure(1)
+        # plt.imshow(dist)
+        # plt.figure(4)
+        # plt.imshow(labels)
         # plt.figure(5)
-        # plt.imshow(h3)        
+        # plt.imshow(mask)        
 
-        plt.figure(2)
-        plt.imshow(background_cropped_, vmin=0, vmax=1, cmap="gray")
+        # plt.figure(2)
+        # plt.imshow(edges)
         
         # plt.show()
-        return []   
+        return pos  
 
 
     def determine_state(self, background):
@@ -307,13 +299,48 @@ class Bot:
            return True
         return False
 
-    def shoot_dino():
-        pass
+    def shoot_dino(self):
+        # pass
+
+        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        background_cropped = background[140:,:,:]
+
 
     def background_changed(self, b1, b2, threshold=1000):
         """Compare difference between two frames"""
         diff = (b1.astype(np.float) - b2.astype(np.float))**2
         return np.mean(diff) > threshold
+
+    def collect_dino(self):
+        """"Finds and shoots the dino"""
+        
+        something_there = False
+
+        # get dinos
+        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        dino_pos = self.detect_dino(background)
+        for pos in dino_pos:
+            # pos = dino_pos[0]
+            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+            time.sleep(1)
+            
+            background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            state = self.determine_state(background)
+            if state == "dino":
+                cx = (self.launch_button_loc[2] + self.launch_button_loc[3]) / 2
+                cy = (self.launch_button_loc[0] + self.launch_button_loc[1]) / 2
+                pyautogui.click(x=self.x+cx, y=self.y+cy)  
+                time.sleep(3)
+                self.shoot_dino()
+                something_there = True
+                break
+            else:
+                pos = self.locate_x_button(background)
+                pos = pos if pos else self.map_button_loc
+                pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+                time.sleep(1)  
+
+        return something_there
 
     def collect_supply_drop(self):
         """"Collects supply drops"""
@@ -341,7 +368,7 @@ class Bot:
                 print("--"*10)
                 print("CLICKING SUPPLY DROP")
 
-                # activate the drop
+                # activate the supply drop
                 pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)  
                 time.sleep(2) 
 
