@@ -8,7 +8,7 @@ import numpy as np
 import time
 import pytesseract
 from skimage import measure, morphology, feature, color, filters
-
+from scipy import ndimage
 
 # https://stackoverflow.com/questions/50655738/how-do-i-resolve-a-tesseractnotfounderror
 pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
@@ -140,6 +140,54 @@ class Bot:
 
     def detect_dino(self, background):
         """Finds the location of dino but there are false positives need more cleaning"""
+
+        # convert background gray
+        background_gray = color.rgb2gray(background)
+        background_cropped = background_gray[self.shooting_zone[0]:self.shooting_zone[1],
+                                             self.shooting_zone[2]:self.shooting_zone[3]]
+        background_cropped_ = filters.median(background_cropped, np.ones((7, 7))) 
+        # background_cropped_ = morphology.opening(background_cropped, np.ones((10, 10))) 
+ 
+        diff = background_cropped - background_cropped_
+        mask = (np.abs(diff) > 0.0099).astype(np.uint8)
+        mask = morphology.opening(mask, np.ones((5, 5))) 
+
+        # apply local binary pattern
+        print("local binary pattern")
+        
+        # texture law shit
+        L5 = np.array([[1], [4], [6], [4], [1]]) # Level
+        E5 = np.array([[-1], [-2], [0], [2], [1]]) # Edge
+        S5 = np.array([[-1], [0], [2], [0], [-1]]) # Spot
+        R5 = np.array([[1], [-4], [6], [-4], [1]]) # Ripple
+
+        print(L5.shape)
+        h1 = ndimage.convolve(background_cropped, E5.dot(E5.T))
+        h2 = ndimage.convolve(background_cropped, S5.dot(S5.T))
+        h3 = ndimage.convolve(background_cropped, R5.dot(R5.T))
+        # h4 = np.convolve(background_cropped, E5.dot(E5.T))
+        # h5 = np.convolve(background_cropped, E5.dot(E5.T))
+        # h6 = np.convolve(background_cropped, E5.dot(E5.T))
+        # h7 = np.convolve(background_cropped, E5.dot(E5.T))
+        # h8 = np.convolve(background_cropped, E5.dot(E5.T))
+        # h9 = np.convolve(background_cropped, E5.dot(E5.T))
+
+        # # kmeans?
+
+        print("done")
+        # filter stuff
+        import matplotlib.pyplot as plt
+        plt.figure(1)
+        plt.imshow(diff)
+        plt.figure(4)
+        plt.imshow(mask)
+        # plt.figure(5)
+        # plt.imshow(h3)        
+
+        plt.figure(2)
+        plt.imshow(background_cropped_, vmin=0, vmax=1, cmap="gray")
+        
+        # plt.show()
         return []   
 
 
@@ -148,6 +196,8 @@ class Bot:
 
         if keyboard.is_pressed("q"):
             raise KeyboardInterrupt
+
+        state = ""
 
         custom_config = r'--oem 3 --psm 1'
     
@@ -162,13 +212,17 @@ class Bot:
 
         # print(text1, " - ", text2)
         if text1 == "LAUNCH":
-            return "dino"
-        elif text2 == "SPECIALEVENT" or text2 == "SUPPLYDROP":
-            return "supply"
+            state = "dino"
+        elif "EVENT" in text2 or \
+            "PECIALEVENT" in text2 or \
+            text2 == "SPECIALEVENT" or \
+            "DROP" in text2 or \
+            text2 == "SUPPLYDROP":
+            state = "supply"
         elif "COIN" in text2 or "CHASE" in text2:
-            return "coin"
+            state = "coin"
         # elif text2 
-        return ""
+        return state
 
     def change_location(self, r=300):
         """Randomly change location"""
@@ -216,6 +270,8 @@ class Bot:
 
             pyautogui.click(x=pos[1] + dx, y=pos[0] + dy)
             time.sleep(2) 
+        else:
+            raise KeyboardInterrupt("Cannot find google map location")
 
         # press ctrl + shift + 2 to go back to game
         pyautogui.keyDown('ctrl') 
@@ -229,15 +285,19 @@ class Bot:
 
         pyautogui.keyUp('ctrl')
         pyautogui.keyUp('shift')
-        time.sleep(2)
+        time.sleep(5)
 
         # click launch button incase we move so far
         if self.moved_too_far():
-            pos = ((self.launch_button_loc[1] + self.launch_button_loc[0])/2, (self.launch_button_loc[3] + self.launch_button_loc[2])/2)
+            print("--"*10)
+            print("MOVED TO FAR")
+            pos = ((self.launch_button_loc[1] + self.launch_button_loc[0])/2, 
+                   (self.launch_button_loc[3] + self.launch_button_loc[2])/2)
             pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
             time.sleep(1)
 
     def moved_too_far(self):
+        """"Detects when we move to far."""
         background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         color = background[551, 165, :]
         # print(color)
@@ -250,21 +310,26 @@ class Bot:
     def shoot_dino():
         pass
 
-    def background_changed(self, b1, b2):
+    def background_changed(self, b1, b2, threshold=1000):
+        """Compare difference between two frames"""
         diff = (b1.astype(np.float) - b2.astype(np.float))**2
-        print(np.mean(diff))
-        return np.mean(diff) > 10000
+        return np.mean(diff) > threshold
 
     def collect_supply_drop(self):
+        """"Collects supply drops"""
 
         if keyboard.is_pressed("q"):
             raise KeyboardInterrupt
 
-        background_old= np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-        supply_drop_pos = self.detect_supply_drop(background_old)
+        # return value
         something_there = False
+
+        # use old background to determine stop clicking
+        background_old= np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))        
+        supply_drop_pos = self.detect_supply_drop(background_old)
+        
+        # loop until you click supply drop
         for pos in supply_drop_pos:
-            # pos = supply_drop_pos[0]
             
             pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
             time.sleep(1)
@@ -275,11 +340,13 @@ class Bot:
             if state == "supply":
                 print("--"*10)
                 print("CLICKING SUPPLY DROP")
+
+                # activate the drop
                 pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)  
                 time.sleep(2) 
-                background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
 
-                print(self.background_changed(background_old, background_new))
+                background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+                # loop until max click is reached or we are in the old background
                 while self.max_click >= count and \
                       self.background_changed(background_old, background_new):
                     print("--"*10)
@@ -289,14 +356,25 @@ class Bot:
                     background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
                     count += 1
 
+                # if clicked more than max amount something is wrong
                 if count > self.max_click:
                     pos = self.locate_x_button(background_new)
                     if pos:
                         pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
                         time.sleep(1) 
+                    else:
+                        raise KeyboardInterrupt("Problem clicking on the supply drop")
+                else:
+                    something_there = True
 
-                something_there = True
+            elif not self.background_changed(background_old, background_new):
+                print("--"*10)
+                print("NOTHING THERE")
+                continue 
             else:
+                print("--"*10)
+                print("NOT SUPPLY DROP")
+                # find x button if not there click on map button
                 pos = self.locate_x_button(background_new)
                 pos = pos if pos else self.map_button_loc
                 pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
