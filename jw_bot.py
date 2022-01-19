@@ -1,4 +1,5 @@
 from statistics import median
+from turtle import pos
 import pyautogui
 import keyboard
 
@@ -300,10 +301,167 @@ class Bot:
         return False
 
     def shoot_dino(self):
-        # pass
 
-        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-        background_cropped = background[140:,:,:]
+
+        # def dart_location(background, shift):
+        #     pos = []
+
+        #     mask = (background[:,:,0] <= 50) * \
+        #            (background[:,:,1] <= 40) * \
+        #            (background[:,:,2] <= 40)
+
+        #     if np.sum(mask) > 0:
+        #         labels = measure.label(mask)
+        #         rows, cols = np.where(labels == np.argmax(np.bincount(labels[labels != 0].flatten())))
+        #         pos = [shift + np.mean(rows), np.mean(cols)]
+                
+        #         import matplotlib.pyplot as plt
+        #         plt.figure(4)
+        #         plt.imshow(mask)
+        #         plt.figure(5)
+        #         plt.imshow(labels)
+
+        #     return pos
+
+        def dino_location(background, shift):
+            pos = []
+
+
+            mask = (background[:,:,0] >= 100) * \
+                   (background[:,:,1] >= 140) * \
+                   (background[:,:,2] >= 180)  
+
+            mask = morphology.binary_opening(mask, np.ones((1, 5)))
+            mask = morphology.binary_opening(mask, np.ones((5, 1)))
+
+            dist = ndimage.distance_transform_edt(mask)
+            if np.sum(mask) > 0:
+                # labels = measure.label(mask)
+                rows, cols = np.where(dist >= np.max(dist))
+                pos = [shift + np.mean(rows), np.mean(cols)]
+
+                # import matplotlib.pyplot as plt
+                # plt.figure(1)
+                # plt.imshow(mask)
+                # plt.figure(2)
+                # plt.imshow(dist)
+                # plt.show()
+
+
+            return pos
+
+        shift = 250
+        T = 1 # 0.1
+        D = 20
+        S = 5
+        v_max = 5
+        ms = 0.1
+        
+        # detect dart location 
+        dart_loc = [428, 225] # dart_location(background_cropped, shift)
+        prev_dino_loc = None
+        vel = [0, 0]
+
+
+        b_curr = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        b_prev = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        
+
+        cx = (self.launch_button_loc[2] + self.launch_button_loc[3]) / 2
+        cy = (self.launch_button_loc[0] + self.launch_button_loc[1]) / 2
+        pyautogui.moveTo(self.x+cx, self.y+cy, 1)  
+        pyautogui.mouseDown()
+        time.sleep(0.5)
+        # pyautogui.mouseUp()
+        # time.sleep(0.1)
+        # pyautogui.mouseDown()
+
+        while not self.background_changed(b_curr, b_prev, 2000):
+            
+            if keyboard.is_pressed("q"):
+                raise KeyboardInterrupt
+
+            b_prev = b_curr
+            b_curr = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            
+            # print(np.mean((b_prev.astype(np.float) - b_curr.astype(np.float))**2))
+            background_cropped = b_curr[shift:,:440,:]
+            dino_loc = dino_location(background_cropped, shift)
+
+            dino_2_dart = np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2)
+            # print(dino_loc)
+            if not dino_loc:
+                dino_loc = [prev_dino_loc[0] + vel[0],
+                            prev_dino_loc[1] + vel[1]]
+
+            # check if dino in dart range
+            if dino_2_dart <= D:
+                print("--"*10)
+                print("DINO CLOSE SHOOTING")
+                pyautogui.mouseUp()
+                time.sleep(0.5)
+                pyautogui.mouseDown()
+                time.sleep(0.5)
+            else:
+                # if not move screen to dino
+
+                x_v =  v_max * (dino_loc[1] - dart_loc[1]) / dino_2_dart
+                y_v =  v_max * (dino_loc[0] - dart_loc[0]) / dino_2_dart
+
+                
+                slow_down_speed = min(1, (dino_2_dart/(S*D)))
+                mouse_pos = pyautogui.position()
+                print("vel", (x_v*T, y_v*T), "dino", dino_loc, "dart", dart_loc, "dist", np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2))
+                # don't go outside the screen
+                print(mouse_pos[0] + x_v*T, self.x, self.x + self.w)
+                print(mouse_pos[1] + y_v*T, self.y, self.y + self.h)
+
+                dx = min(max(mouse_pos[0] + x_v*T*slow_down_speed, self.x), self.x + self.w)
+                dy = min(max(mouse_pos[1] + y_v*T*slow_down_speed, self.y), self.y + self.h)
+
+                print(mouse_pos, (dx, dy))
+                pyautogui.moveTo(dx, dy, ms)
+            
+            # time.sleep(0.25)
+
+
+            prev_dino_loc = dino_loc
+            print("DIST", np.mean((b_prev.astype(np.float) - b_curr.astype(np.float))**2))
+        print("DONE")
+
+        pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)  
+        time.sleep(2) 
+
+
+        # pos2.append(pos)
+        # print(pos2)
+        # if pos2:
+        #     pos = [pos] + [pos2]
+        # else:
+        #     pos =[pos]
+        # print(pos)
+        # return pos
+
+        # curr_dart_loc = None
+        # prev_dart_loc = None
+        # dart_vel = None
+
+        # curr_dino_loc = None
+        # prev_dino_loc = None
+        # dino_vel = None
+
+        # mouse press on
+
+        # detect dino
+
+
+        # move there
+
+
+        # shot when dart at dino location
+
+
+        # repeat
 
 
     def background_changed(self, b1, b2, threshold=1000):
@@ -397,7 +555,6 @@ class Bot:
             elif not self.background_changed(background_old, background_new):
                 print("--"*10)
                 print("NOTHING THERE")
-                continue 
             else:
                 print("--"*10)
                 print("NOT SUPPLY DROP")

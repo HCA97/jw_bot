@@ -12,6 +12,10 @@ from jw_bot import Bot
 
 def plot_pos(pos, marker=".", color="k"):
     if pos:
+        # if len(pos) == 2:
+        #     plt.plot(pos[1], pos[0], marker, color=color, markersize=15)
+
+        # else:
         for p in pos:
             plt.plot(p[1], p[0], marker, color=color, markersize=15)
 
@@ -57,19 +61,27 @@ if __name__ == "__main__":
 
             # take photo
             if bot.loc:
-                background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                bot.shoot_dino()
+
+                if keyboard.is_pressed("enter"):
+                    background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
+                    pos = bot.shoot_dino()
                 # pos = bot.detect_coins(background)
                 # bot.collect_supply_drop()
 
-                from skimage import measure, morphology, feature, color, filters
+                # input("do ag")
+
+                # from skimage import measure, morphology, feature, color, filters
 
 
-                plt.figure(3)
-                plt.imshow(color.rgb2gray(background))
-                plot_pos(pos)
-                show_regions(bot.shooting_zone, bot.supply_drop_text_loc, bot.launch_button_loc)
-                plt.show()
+                # plt.figure(3)
+                # plt.clf()
+                # plt.cla()
+                # plt.imshow(background)
+                # plot_pos(pos)
+                # show_regions(bot.shooting_zone, bot.supply_drop_text_loc, bot.launch_button_loc)
+                # plt.pause(0.01)
+                # plt.draw()
+
 
 
             time.sleep(0.1)
