@@ -31,6 +31,7 @@ class Bot:
         self.launch_button_loc = (650, 712, 132, 310)
         self.supply_drop_text_loc = (92, 132, 110, 330)
         self.map_button_loc = (786, 222)
+        self.battery_loc = (75, 76, 360, 420)
         # self.supply_drop_text_loc = (170, 217, 140, 310)
 
         # color
@@ -41,6 +42,7 @@ class Bot:
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
         self.coin_color = (180, 160, 100, 240, 220, 120)
+        self.battery_color = (10, 30, 80)
 
         # other
         self.max_click = 4
@@ -200,10 +202,10 @@ class Bot:
         supply_drop = background[self.supply_drop_text_loc[0]:self.supply_drop_text_loc[1],
                                 self.supply_drop_text_loc[2]:self.supply_drop_text_loc[3]]
 
-        text1 = "".join(pytesseract.image_to_string(launch_button).split())
+        text1 = "".join(pytesseract.image_to_string(launch_button, config = custom_config).split())
         text2 = "".join(pytesseract.image_to_string(supply_drop, config = custom_config).split())
 
-        # print(text1, " - ", text2)
+        print(text1, " - ", text2)
         if text1 == "LAUNCH":
             state = "dino"
         elif "EVENT" in text2 or \
@@ -300,28 +302,25 @@ class Bot:
            return True
         return False
 
+    def get_battery_left(self, background):
+
+        # crop battery
+        battery = background[self.battery_loc[0]:self.battery_loc[1],
+                             self.battery_loc[2]:self.battery_loc[3]]
+
+        # get length
+        mask = (battery[:,:,0] <= self.battery_color[0]) * \
+                (battery[:,:,1] <= self.battery_color[1]) * \
+                (battery[:,:,2] <= self.battery_color[2])
+        line_length = 0
+        if np.sum(mask) > 0:
+            _, cols = np.where(mask)
+            line_length = cols.max() - cols.min()
+
+        # normalize as percentage
+        return 1 - (line_length /  (self.battery_loc[2] - self.battery_loc[3]))
+
     def shoot_dino(self):
-
-
-        # def dart_location(background, shift):
-        #     pos = []
-
-        #     mask = (background[:,:,0] <= 50) * \
-        #            (background[:,:,1] <= 40) * \
-        #            (background[:,:,2] <= 40)
-
-        #     if np.sum(mask) > 0:
-        #         labels = measure.label(mask)
-        #         rows, cols = np.where(labels == np.argmax(np.bincount(labels[labels != 0].flatten())))
-        #         pos = [shift + np.mean(rows), np.mean(cols)]
-                
-        #         import matplotlib.pyplot as plt
-        #         plt.figure(4)
-        #         plt.imshow(mask)
-        #         plt.figure(5)
-        #         plt.imshow(labels)
-
-        #     return pos
 
         def dino_location(background, shift):
             pos = []
@@ -351,10 +350,9 @@ class Bot:
             return pos
 
         shift = 250
-        T = 1 # 0.1
         D = 20
         S = 5
-        v_max = 5
+        v_max = 10
         ms = 0.1
         
         # detect dart location 
@@ -376,7 +374,7 @@ class Bot:
         # time.sleep(0.1)
         # pyautogui.mouseDown()
 
-        while not self.background_changed(b_curr, b_prev, 2000):
+        while not self.background_changed(b_curr, b_prev, 2500):
             
             if keyboard.is_pressed("q"):
                 raise KeyboardInterrupt
@@ -384,53 +382,63 @@ class Bot:
             b_prev = b_curr
             b_curr = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
             
+
             # print(np.mean((b_prev.astype(np.float) - b_curr.astype(np.float))**2))
             background_cropped = b_curr[shift:,:440,:]
             dino_loc = dino_location(background_cropped, shift)
 
-            dino_2_dart = np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2)
             # print(dino_loc)
             if not dino_loc:
                 dino_loc = [prev_dino_loc[0] + vel[0],
                             prev_dino_loc[1] + vel[1]]
+            
+            dino_2_dart = np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2)
 
             # check if dino in dart range
-            if dino_2_dart <= D:
+            if np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2) <= D:
                 print("--"*10)
                 print("DINO CLOSE SHOOTING")
                 pyautogui.mouseUp()
                 time.sleep(0.5)
+                # pyautogui.moveTo(self.x + dart_loc[1], self.y + dart_loc[0], 0.1)
                 pyautogui.mouseDown()
-                time.sleep(0.5)
-            else:
-                # if not move screen to dino
+                time.sleep(0.1)
+            else: # if not move screen to dino
 
-                x_v =  v_max * (dino_loc[1] - dart_loc[1]) / dino_2_dart
-                y_v =  v_max * (dino_loc[0] - dart_loc[0]) / dino_2_dart
+                # predict future location
+                dino_loc_pred = [dino_loc[0] + vel[0] * (dino_2_dart / v_max),  
+                                 dino_loc[1] + vel[1] * (dino_2_dart / v_max)] 
 
-                
+                # get direction and multiply with v_max
+                dino_pred_2_dart = np.sqrt((dino_loc_pred[0] - dart_loc[0])**2 + (dino_loc_pred[1] - dart_loc[1])**2)
+                x_v =  v_max * (dino_loc_pred[1] - dart_loc[1]) / dino_pred_2_dart
+                y_v =  v_max * (dino_loc_pred[0] - dart_loc[0]) / dino_pred_2_dart
+
+                # if we are to close move slower
                 slow_down_speed = min(1, (dino_2_dart/(S*D)))
                 mouse_pos = pyautogui.position()
-                print("vel", (x_v*T, y_v*T), "dino", dino_loc, "dart", dart_loc, "dist", np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2))
+                print("vel", vel, "dino", dino_loc, 
+                        "dino_pred", dino_loc_pred, "dart", dart_loc, "dist", dino_2_dart)
                 # don't go outside the screen
-                print(mouse_pos[0] + x_v*T, self.x, self.x + self.w)
-                print(mouse_pos[1] + y_v*T, self.y, self.y + self.h)
+                # print(mouse_pos[0] + x_v*T, self.x, self.x + self.w)
+                # print(mouse_pos[1] + y_v*T, self.y, self.y + self.h)
 
-                dx = min(max(mouse_pos[0] + x_v*T*slow_down_speed, self.x), self.x + self.w)
-                dy = min(max(mouse_pos[1] + y_v*T*slow_down_speed, self.y), self.y + self.h)
+                dx = min(max(mouse_pos[0] + x_v*slow_down_speed, self.x), self.x + self.w)
+                dy = min(max(mouse_pos[1] + y_v*slow_down_speed, self.y), self.y + self.h)
 
-                print(mouse_pos, (dx, dy))
+                # print(mouse_pos, (dx, dy))
                 pyautogui.moveTo(dx, dy, ms)
             
             # time.sleep(0.25)
 
-
+            if prev_dino_loc:
+                vel = [dino_loc[0] - prev_dino_loc[0], dino_loc[1] - prev_dino_loc[1]]
             prev_dino_loc = dino_loc
             print("DIST", np.mean((b_prev.astype(np.float) - b_curr.astype(np.float))**2))
         print("DONE")
 
+        time.sleep(10) 
         pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)  
-        time.sleep(2) 
 
 
         # pos2.append(pos)
@@ -475,25 +483,29 @@ class Bot:
         something_there = False
 
         # get dinos
-        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-        dino_pos = self.detect_dino(background)
+        background_old = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        dino_pos = self.detect_dino(background_old)
         for pos in dino_pos:
             # pos = dino_pos[0]
             pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
             time.sleep(1)
             
-            background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-            state = self.determine_state(background)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            state = self.determine_state(background_new)
+            # print(state)
             if state == "dino":
                 cx = (self.launch_button_loc[2] + self.launch_button_loc[3]) / 2
                 cy = (self.launch_button_loc[0] + self.launch_button_loc[1]) / 2
                 pyautogui.click(x=self.x+cx, y=self.y+cy)  
-                time.sleep(3)
+                time.sleep(7)
                 self.shoot_dino()
                 something_there = True
                 break
+            elif not self.background_changed(background_old, background_new):
+                print("--"*10)
+                print("NOTHING THERE")
             else:
-                pos = self.locate_x_button(background)
+                pos = self.locate_x_button(background_new)
                 pos = pos if pos else self.map_button_loc
                 pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
                 time.sleep(1)  

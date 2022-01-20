@@ -19,7 +19,7 @@ def plot_pos(pos, marker=".", color="k"):
         for p in pos:
             plt.plot(p[1], p[0], marker, color=color, markersize=15)
 
-def show_regions(shooting_zone, supply_drop_text_loc, launch_button_loc):
+def show_regions(shooting_zone, supply_drop_text_loc, launch_button_loc, battery_loc):
     rect = patches.Rectangle((shooting_zone[2], shooting_zone[0]),
                             shooting_zone[3] - shooting_zone[2],
                             shooting_zone[1] - shooting_zone[0],
@@ -34,6 +34,11 @@ def show_regions(shooting_zone, supply_drop_text_loc, launch_button_loc):
                                 launch_button_loc[3] - launch_button_loc[2],
                                 launch_button_loc[1] - launch_button_loc[0],
                                 linewidth=1,edgecolor='b',facecolor='none')
+    plt.gca().add_patch(rect)
+    rect = patches.Rectangle((battery_loc[2], battery_loc[0]),
+                                battery_loc[3] - battery_loc[2],
+                                battery_loc[1] - battery_loc[0],
+                                linewidth=1,edgecolor='k',facecolor='none')
     plt.gca().add_patch(rect)
 
 if __name__ == "__main__":
@@ -62,9 +67,10 @@ if __name__ == "__main__":
             # take photo
             if bot.loc:
 
-                if keyboard.is_pressed("enter"):
-                    background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                    pos = bot.shoot_dino()
+                # if keyboard.is_pressed("0"):
+                background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
+                bot.get_battery_left(background)
+                    # pos = bot.collect_dino()
                 # pos = bot.detect_coins(background)
                 # bot.collect_supply_drop()
 
@@ -73,14 +79,15 @@ if __name__ == "__main__":
                 # from skimage import measure, morphology, feature, color, filters
 
 
-                # plt.figure(3)
-                # plt.clf()
-                # plt.cla()
-                # plt.imshow(background)
-                # plot_pos(pos)
-                # show_regions(bot.shooting_zone, bot.supply_drop_text_loc, bot.launch_button_loc)
+                plt.figure(3)
+                plt.clf()
+                plt.cla()
+                plt.imshow(background)
+                plot_pos(pos)
+                show_regions(bot.shooting_zone, bot.supply_drop_text_loc, bot.launch_button_loc, bot.battery_loc)
                 # plt.pause(0.01)
                 # plt.draw()
+                plt.show()
 
 
 
