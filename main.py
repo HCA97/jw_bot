@@ -80,28 +80,29 @@ if __name__ == "__main__":
 
 
                 # get dinos
-                background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                dino_pos = bot.detect_dino(background)
-                for pos in dino_pos:
-                    # pos = dino_pos[0]
-                    pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                    time.sleep(1)
+                something_there = bot.collect_dino() or something_there
+                # background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
+                # dino_pos = bot.detect_dino(background)
+                # for pos in dino_pos:
+                #     # pos = dino_pos[0]
+                #     pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
+                #     time.sleep(1)
                     
-                    background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                    state = bot.determine_state(background)
-                    if state == "dino":
-                        cx = (bot.launch_button_loc[2] + bot.launch_button_loc[3]) / 2
-                        cy = (bot.launch_button_loc[0] + bot.launch_button_loc[1]) / 2
-                        pyautogui.click(x=bot.x+cx, y=bot.y+cy)  
-                        time.sleep(3)
-                        bot.shoot_dino()
-                        something_there = True
-                        break
-                    else:
-                        pos = bot.locate_x_button(background)
-                        pos = pos if pos else bot.map_button_loc
-                        pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                        time.sleep(1)  
+                #     background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
+                #     state = bot.determine_state(background)
+                #     if state == "dino":
+                #         cx = (bot.launch_button_loc[2] + bot.launch_button_loc[3]) / 2
+                #         cy = (bot.launch_button_loc[0] + bot.launch_button_loc[1]) / 2
+                #         pyautogui.click(x=bot.x+cx, y=bot.y+cy)  
+                #         time.sleep(3)
+                #         bot.shoot_dino()
+                #         something_there = True
+                #         break
+                #     else:
+                #         pos = bot.locate_x_button(background)
+                #         pos = pos if pos else bot.map_button_loc
+                #         pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
+                #         time.sleep(1)  
 
                 if number_of_scrolls > max_scrolls:
                     # move location

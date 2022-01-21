@@ -205,8 +205,8 @@ class Bot:
         text1 = "".join(pytesseract.image_to_string(launch_button, config = custom_config).split())
         text2 = "".join(pytesseract.image_to_string(supply_drop, config = custom_config).split())
 
-        print(text1, " - ", text2)
-        if text1 == "LAUNCH":
+        # print(text1, " - ", text2)
+        if "LAUNCH" in text1:
             state = "dino"
         elif "EVENT" in text2 or \
             "PECIALEVENT" in text2 or \
@@ -393,32 +393,35 @@ class Bot:
                             prev_dino_loc[1] + vel[1]]
             
             dino_2_dart = np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2)
+            battery_left = self.get_battery_left(b_curr)
 
             # check if dino in dart range
-            if np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2) <= D:
+            if np.sqrt((dino_loc[0] - dart_loc[0])**2 + (dino_loc[1] - dart_loc[1])**2) <= (D + 10*battery_left):
                 print("--"*10)
                 print("DINO CLOSE SHOOTING")
                 pyautogui.mouseUp()
                 time.sleep(0.5)
-                # pyautogui.moveTo(self.x + dart_loc[1], self.y + dart_loc[0], 0.1)
+                pyautogui.moveTo(self.x+cx, self.y+cy, 0.1)  
                 pyautogui.mouseDown()
-                time.sleep(0.1)
+                # time.sleep(0.1)
             else: # if not move screen to dino
 
+                v_max_new = v_max + 5*battery_left
+
                 # predict future location
-                dino_loc_pred = [dino_loc[0] + vel[0] * (dino_2_dart / v_max),  
-                                 dino_loc[1] + vel[1] * (dino_2_dart / v_max)] 
+                dino_loc_pred = [dino_loc[0] + vel[0] * (dino_2_dart / v_max_new),  
+                                 dino_loc[1] + vel[1] * (dino_2_dart / v_max_new)] 
 
                 # get direction and multiply with v_max
                 dino_pred_2_dart = np.sqrt((dino_loc_pred[0] - dart_loc[0])**2 + (dino_loc_pred[1] - dart_loc[1])**2)
-                x_v =  v_max * (dino_loc_pred[1] - dart_loc[1]) / dino_pred_2_dart
-                y_v =  v_max * (dino_loc_pred[0] - dart_loc[0]) / dino_pred_2_dart
+                x_v =  v_max_new * (dino_loc_pred[1] - dart_loc[1]) / dino_pred_2_dart
+                y_v =  v_max_new * (dino_loc_pred[0] - dart_loc[0]) / dino_pred_2_dart
 
                 # if we are to close move slower
                 slow_down_speed = min(1, (dino_2_dart/(S*D)))
                 mouse_pos = pyautogui.position()
-                print("vel", vel, "dino", dino_loc, 
-                        "dino_pred", dino_loc_pred, "dart", dart_loc, "dist", dino_2_dart)
+                # print("vel", vel, "dino", dino_loc, 
+                #         "dino_pred", dino_loc_pred, "dart", dart_loc, "dist", dino_2_dart)
                 # don't go outside the screen
                 # print(mouse_pos[0] + x_v*T, self.x, self.x + self.w)
                 # print(mouse_pos[1] + y_v*T, self.y, self.y + self.h)
@@ -434,8 +437,8 @@ class Bot:
             if prev_dino_loc:
                 vel = [dino_loc[0] - prev_dino_loc[0], dino_loc[1] - prev_dino_loc[1]]
             prev_dino_loc = dino_loc
-            print("DIST", np.mean((b_prev.astype(np.float) - b_curr.astype(np.float))**2))
-        print("DONE")
+            # print("DIST", np.mean((b_prev.astype(np.float) - b_curr.astype(np.float))**2))
+        # print("DONE")
 
         time.sleep(10) 
         pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)  
@@ -559,8 +562,8 @@ class Bot:
                     if pos:
                         pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
                         time.sleep(1) 
-                    else:
-                        raise KeyboardInterrupt("Problem clicking on the supply drop")
+                    # else:
+                    #     raise KeyboardInterrupt("Problem clicking on the supply drop")
                 else:
                     something_there = True
 
