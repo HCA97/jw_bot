@@ -42,45 +42,15 @@ if __name__ == "__main__":
                 if keyboard.is_pressed("q"):
                     raise KeyboardInterrupt
 
-                something_there = False
-
                 # get coins
-                background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                coin_pos = bot.detect_coins(background)
-                for pos in coin_pos:
-                    pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                    time.sleep(1)
-
-                    background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                    state = bot.determine_state(background)
-                    if state == "coin":
-                        print("--"*10)
-                        print("CLICKING COIN")
-                        pyautogui.click(x=bot.x+bot.w//2, y=bot.y+bot.h//2) 
-                        time.sleep(2.5) 
-                        pyautogui.click(x=bot.x+bot.w//2, y=bot.y+bot.h//2) 
-                        
-                        background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                        state = bot.determine_state(background)
-                        if state == "coin":
-                            pos = bot.locate_x_button(background)
-                            pos = pos if pos else bot.map_button_loc
-                            pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                            time.sleep(1)  
-                        else:
-                            something_there = True
-                    else:
-                        pos = bot.locate_x_button(background)
-                        pos = pos if pos else bot.map_button_loc
-                        pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                        time.sleep(1)     
+                bot.collect_coin()
 
                 # get supply drops
-                something_there = bot.collect_supply_drop() or something_there                                   
+                bot.collect_supply_drop()                                 
 
 
                 # get dinos
-                something_there = bot.collect_dino() or something_there 
+                bot.collect_dino()
 
                 if number_of_scrolls > max_scrolls:
                     # move location
