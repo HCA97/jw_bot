@@ -1,3 +1,4 @@
+from turtle import back
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -41,6 +42,9 @@ def show_regions(shooting_zone, supply_drop_text_loc, launch_button_loc, battery
                                 linewidth=1,edgecolor='k',facecolor='none')
     plt.gca().add_patch(rect)
 
+def show_points(moved_too_far_loc, dart_loc):
+    plt.plot(moved_too_far_loc[1], moved_too_far_loc[0], "*", color="r", markersize=15)
+    plt.plot(dart_loc[1], dart_loc[0], "*", color="r", markersize=15)
 if __name__ == "__main__":
     print('Press Ctrl-C to quit.')
     DEBUG = False
@@ -67,27 +71,30 @@ if __name__ == "__main__":
             # take photo
             if bot.loc:
 
-                # if keyboard.is_pressed("0"):
                 background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                bot.get_battery_left(background)
-                    # pos = bot.collect_dino()
-                # pos = bot.detect_coins(background)
-                # bot.collect_supply_drop()
+                print(bot.determine_state(background))
+                if keyboard.is_pressed("0"):
+                    bot.shoot_dino()
+                if keyboard.is_pressed("9"):
+                    bot.collect_supply_drop()
+                    
+                pos2 = bot.detect_supply_drop(background)
+                pos = bot.detect_coins(background)
+                pos1 = bot.detect_dino(background)
+                
 
-                # input("do ag")
-
-                # from skimage import measure, morphology, feature, color, filters
 
 
-                plt.figure(3)
-                plt.clf()
-                plt.cla()
-                plt.imshow(background)
-                plot_pos(pos)
-                show_regions(bot.shooting_zone, bot.supply_drop_text_loc, bot.launch_button_loc, bot.battery_loc)
-                # plt.pause(0.01)
-                # plt.draw()
-                plt.show()
+                # plt.figure(3)
+                # plt.clf()
+                # plt.cla()
+                # plt.imshow(background)
+                # plot_pos(pos + pos2 + pos1)
+                # show_regions(bot.shooting_zone, bot.supply_drop_text_loc, bot.launch_button_loc, bot.battery_loc)
+                # show_points(bot.moved_too_far_loc, bot.dart_loc, )
+                # # plt.pause(0.01)
+                # # plt.draw()
+                # plt.show()
 
 
 
