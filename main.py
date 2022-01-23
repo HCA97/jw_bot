@@ -80,29 +80,7 @@ if __name__ == "__main__":
 
 
                 # get dinos
-                something_there = bot.collect_dino() or something_there
-                # background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                # dino_pos = bot.detect_dino(background)
-                # for pos in dino_pos:
-                #     # pos = dino_pos[0]
-                #     pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                #     time.sleep(1)
-                    
-                #     background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                #     state = bot.determine_state(background)
-                #     if state == "dino":
-                #         cx = (bot.launch_button_loc[2] + bot.launch_button_loc[3]) / 2
-                #         cy = (bot.launch_button_loc[0] + bot.launch_button_loc[1]) / 2
-                #         pyautogui.click(x=bot.x+cx, y=bot.y+cy)  
-                #         time.sleep(3)
-                #         bot.shoot_dino()
-                #         something_there = True
-                #         break
-                #     else:
-                #         pos = bot.locate_x_button(background)
-                #         pos = pos if pos else bot.map_button_loc
-                #         pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                #         time.sleep(1)  
+                something_there = bot.collect_dino() or something_there 
 
                 if number_of_scrolls > max_scrolls:
                     # move location
@@ -111,24 +89,24 @@ if __name__ == "__main__":
                     bot.change_location()
                     number_of_scrolls = 0
                     
-                if not something_there:
-                    print("--"*10)
-                    print("CHANGING VIEW")
-                    # print("--"*10)
-                    pyautogui.click(x=bot.x+bot.w//2, y=bot.y+bot.h//2)
-                    time.sleep(1)
+                # if not something_there:
+                print("--"*10)
+                print("CHANGING VIEW")
+                # print("--"*10)
+                pyautogui.click(x=bot.x+bot.w//2, y=bot.y+bot.h//2)
+                time.sleep(1)
 
-                    background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                    pos = bot.locate_x_button(background)
-                    if pos:
-                        pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                        time.sleep(1)  
+                background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
+                pos = bot.locate_x_button(background)
+                if pos:
+                    pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
+                    time.sleep(1)  
 
 
-                    pyautogui.moveTo(bot.x+bot.w//2, bot.y+bot.h//2, 0.1)
-                    pyautogui.scroll(90)
-                    time.sleep(1)
-                    number_of_scrolls += 1
+                pyautogui.moveTo(bot.x+bot.w//2, bot.y+bot.h//2, 0.1)
+                pyautogui.scroll(90)
+                time.sleep(1)
+                number_of_scrolls += 1
                 
 
             time.sleep(0.1)

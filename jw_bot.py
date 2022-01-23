@@ -480,6 +480,9 @@ class Bot:
         diff = (b1.astype(np.float) - b2.astype(np.float))**2
         return np.mean(diff) > threshold
 
+    def collect_coin(self):
+        pass
+    
     def collect_dino(self):
         """"Finds and shoots the dino"""
         
@@ -503,7 +506,7 @@ class Bot:
                 time.sleep(7)
                 self.shoot_dino()
                 something_there = True
-                break
+                # break
             elif not self.background_changed(background_old, background_new):
                 print("--"*10)
                 print("NOTHING THERE")
