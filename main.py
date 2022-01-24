@@ -52,31 +52,16 @@ if __name__ == "__main__":
                 # get dinos
                 bot.collect_dino()
 
-                if number_of_scrolls > max_scrolls:
+                if bot.number_of_scrolls > max_scrolls:
                     # move location
                     print("--"*10)
                     print("CHANGING LOCATION")
                     bot.change_location()
-                    number_of_scrolls = 0
+                    bot.number_of_scrolls = 0
                     
                 # if not something_there:
-                print("--"*10)
-                print("CHANGING VIEW")
-                # print("--"*10)
-                pyautogui.click(x=bot.x+bot.w//2, y=bot.y+bot.h//2)
-                time.sleep(1)
-
-                background = np.array(pyautogui.screenshot(region=(bot.x, bot.y, bot.w, bot.h)))
-                pos = bot.locate_x_button(background)
-                if pos:
-                    pyautogui.click(x=bot.x+pos[1], y=bot.y+pos[0])
-                    time.sleep(1)  
-
-
-                pyautogui.moveTo(bot.x+bot.w//2, bot.y+bot.h//2, 0.1)
-                pyautogui.scroll(90)
-                time.sleep(1)
-                number_of_scrolls += 1
+                bot.change_view()
+                bot.number_of_scrolls += 1
                 
 
             time.sleep(0.1)
