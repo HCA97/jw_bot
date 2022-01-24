@@ -1,20 +1,16 @@
-from statistics import median
-from turtle import pos
-import pyautogui
-import keyboard
-
-import numpy as np
 import time
 
+import pyautogui
+import keyboard
 import numpy as np
 from PIL import Image
 import pytesseract
-from skimage import measure, morphology, feature, color, filters, transform
+from skimage import measure, morphology, filters
 from scipy import ndimage
 
-
+# CHANGE THIS!
 # https://stackoverflow.com/questions/50655738/how-do-i-resolve-a-tesseractnotfounderror
-pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
 
 class Bot:
@@ -68,7 +64,8 @@ class Bot:
         self.max_click = 4
 
         # extra stuff
-        self.loading_screen = np.array(Image.open(r'figs/loading_screen.png'))
+        self.loading_screen_pic = Image.open(r'figs/loading_screen.png')
+        self.moved_too_far_pic = Image.open(r'figs/moved_too_far.png')
 
 
     def set_app_loc(self, x, y, w, h):
@@ -105,9 +102,24 @@ class Bot:
         
         self.D = 10 * h / 831
         self.v_max = 10 * h / 831
-        # scroll down
 
-    # detection
+        # scroll down
+        pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)
+        time.sleep(1)
+
+        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        pos = self.locate_x_button(background)
+        if pos:
+            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+            time.sleep(1)  
+
+        pyautogui.moveTo(self.x+self.w//2, self.y+self.h//2, 0.1)
+        pyautogui.keyDown('ctrl') 
+        time.sleep(0.1)
+        for _ in range(5):
+            pyautogui.scroll(-90)
+            time.sleep(0.5)
+        pyautogui.keyUp('ctrl')
 
     def locate_x_button(self, background, button_color=None, shift=712):
         """Locate x button to go back to map"""
@@ -339,7 +351,8 @@ class Bot:
         time.sleep(5)
 
         # click launch button incase we move so far
-        if self.moved_too_far():
+        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        if self.moved_too_far(background):
             print("--"*10)
             print("MOVED TO FAR")
             pos = ((self.launch_button_loc[1] + self.launch_button_loc[0])/2, 
@@ -347,9 +360,33 @@ class Bot:
             pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
             time.sleep(1)
 
-    def moved_too_far(self):
-        """"Detects when we move to far."""
+    def change_view(self):
+        """"Rotates the screen after everthing is collected"""
+        print("--"*10)
+        print("CHANGING VIEW")
+        
+        pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)
+        time.sleep(1)
+
         background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        pos = self.locate_x_button(background)
+        if pos:
+            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+            time.sleep(1)  
+
+        pyautogui.moveTo(self.x+self.w//2, self.y+self.h//2, 0.1)
+        pyautogui.scroll(90)
+        time.sleep(1)
+
+    def background_changed(self, b1, b2, threshold=1000):
+        """Compare difference between two frames"""
+        diff = (b1.astype(np.float) - b2.astype(np.float))**2
+
+        return np.mean(diff) > threshold
+
+    def moved_too_far(self, background):
+        """"Detects when we move to far."""
+        # background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         color = background[self.moved_too_far_loc[0], 
                            self.moved_too_far_loc[1], :]
         # print(color)
@@ -359,10 +396,14 @@ class Bot:
            return True
         return False
 
-    def is_dino_loading_screen(self, background):
+        # img = self.moved_too_far_pic.resize((self.w, self.h), Image.ANTIALIAS)
+        # moved_too_far_resized = np.array(img)[:, :, :3]
+        # print("DIST", np.mean((moved_too_far_resized.astype(np.float) - background.astype(np.float))**2))
+        # return not self.background_changed(moved_too_far_resized, background, 2000)
 
-        img = Image.fromarray(self.loading_screen)
-        img = img.resize((self.w, self.h), Image.ANTIALIAS)
+    def is_dino_loading_screen(self, background):
+        
+        img = self.loading_screen_pic.resize((self.w, self.h), Image.ANTIALIAS)
 
         # some reason image become 4D 
         loading_screen_resized = np.array(img)[:, :, :3]
@@ -515,31 +556,6 @@ class Bot:
         time.sleep(1) 
         pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
         time.sleep(0.1) 
-
-
-    def change_view(self):
-        """"Rotates the screen after everthing is collected"""
-        print("--"*10)
-        print("CHANGING VIEW")
-        
-        pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)
-        time.sleep(1)
-
-        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-        pos = self.locate_x_button(background)
-        if pos:
-            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
-            time.sleep(1)  
-
-        pyautogui.moveTo(self.x+self.w//2, self.y+self.h//2, 0.1)
-        pyautogui.scroll(90)
-        time.sleep(1)
-
-    def background_changed(self, b1, b2, threshold=1000):
-        """Compare difference between two frames"""
-        diff = (b1.astype(np.float) - b2.astype(np.float))**2
-
-        return np.mean(diff) > threshold
 
     def collect_coin(self):
         """Collects coin chests"""

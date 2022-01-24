@@ -1,13 +1,5 @@
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
 import pyautogui
 import keyboard
-
-import numpy as np
-import time
-
-import numpy as np
 import time
 
 from jw_bot import Bot
