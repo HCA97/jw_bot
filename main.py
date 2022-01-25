@@ -35,10 +35,10 @@ if __name__ == "__main__":
                     raise KeyboardInterrupt
 
                 # get coins
-                bot.collect_coin()
+                # bot.collect_coin()
 
                 # get supply drops
-                bot.collect_supply_drop()                                 
+                # bot.collect_supply_drop()                                 
 
 
                 # get dinos

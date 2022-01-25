@@ -104,22 +104,22 @@ class Bot:
         self.v_max = 10 * h / 831
 
         # scroll down
-        pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)
-        time.sleep(1)
+        # pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)
+        # time.sleep(1)
 
-        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-        pos = self.locate_x_button(background)
-        if pos:
-            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
-            time.sleep(1)  
+        # background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        # pos = self.locate_x_button(background)
+        # if pos:
+        #     pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+        #     time.sleep(1)  
 
-        pyautogui.moveTo(self.x+self.w//2, self.y+self.h//2, 0.1)
-        pyautogui.keyDown('ctrl') 
-        time.sleep(0.1)
-        for _ in range(5):
-            pyautogui.scroll(-90)
-            time.sleep(0.5)
-        pyautogui.keyUp('ctrl')
+        # pyautogui.moveTo(self.x+self.w//2, self.y+self.h//2, 0.1)
+        # pyautogui.keyDown('ctrl') 
+        # time.sleep(0.1)
+        # for _ in range(5):
+        #     pyautogui.scroll(-90)
+        #     time.sleep(0.5)
+        # pyautogui.keyUp('ctrl')
 
     def locate_x_button(self, background, button_color=None, shift=712):
         """Locate x button to go back to map"""
@@ -381,7 +381,7 @@ class Bot:
     def background_changed(self, b1, b2, threshold=1000):
         """Compare difference between two frames"""
         diff = (b1.astype(np.float) - b2.astype(np.float))**2
-
+        print("DIFF", np.mean(diff))
         return np.mean(diff) > threshold
 
     def moved_too_far(self, background):
@@ -458,11 +458,11 @@ class Bot:
             return pos
         
         # hyper parameters
-        D = self.D
+        D = 2*self.D
         v_max = self.v_max
         S = 4
         ms = 0.05
-        h1, h2, h3 = 10, 2, 2
+        h1, h2, h3 = 0, 0, 0, # 10, 2, 2
         
         # detect dart location 
         dart_loc = self.dart_loc  # dart_location(background_cropped, shift)
@@ -471,7 +471,6 @@ class Bot:
         # break_time = 
 
 
-        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         # b_prev = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         
 
@@ -480,6 +479,8 @@ class Bot:
         pyautogui.moveTo(self.x+cx, self.y+cy, 1)  
         pyautogui.mouseDown()
         time.sleep(0.5)
+        
+        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
 
         while not self.is_dino_loading_screen(background):
             
@@ -507,7 +508,7 @@ class Bot:
                     time.sleep(0.25)
                     pyautogui.moveTo(self.x+cx, self.y+cy, 0.1)  
                     pyautogui.mouseDown()
-                    time.sleep(0.15)
+                    time.sleep(0.5)
                 else: # if not move screen to dino
                     v_max_new = v_max + h2*battery_left
 
@@ -555,7 +556,7 @@ class Bot:
             time.sleep(1)
         time.sleep(1) 
         pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
-        time.sleep(0.1) 
+        time.sleep(1) 
 
     def collect_coin(self):
         """Collects coin chests"""
@@ -628,12 +629,15 @@ class Bot:
                 cx = (self.launch_button_loc[2] + self.launch_button_loc[3]) / 2
                 cy = (self.launch_button_loc[0] + self.launch_button_loc[1]) / 2
                 pyautogui.click(x=self.x+cx, y=self.y+cy)  
-                time.sleep(0.5)
+                time.sleep(1)
 
                 background_loading_screen = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-                while not self.is_dino_loading_screen(background_loading_screen):
+                while self.is_dino_loading_screen(background_loading_screen):
                     background_loading_screen = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
                     time.sleep(1)
+                print("--"*10)
+                print("TIME TO SHOOT")
+
                 
                 time.sleep(3)
                 self.shoot_dino()
