@@ -31,6 +31,12 @@ class Bot:
         self.moved_too_far_loc_ratio = (551 / 831, 165 / 481)
         self.dino_shoot_loc_ratio = (250 / 831, 440 / 481)
         self.dart_loc_ratio = (428 / 831, 225 / 481)
+        self.supply_drop_resources_text_loc_ratio = (170 / 890, 240 / 890, 110 / 515, 370 / 515)
+        self.supply_drop_resources_amount_loc_ratio = (510 / 890, 565 / 890, 180 / 515, 310 / 515)
+        self.dino_collected_text_loc_ratio = (160 / 891, 270 / 891, 50 / 513, 460 / 513)
+        # self.dino_collected_text_loc_ratio = (160 / 891, 340 / 891, 50 / 513, 460 / 513)
+
+        self.dino_collected_amount_loc_ratio = (280 / 891, 330 / 891, 210 / 513, 350 / 513)
 
         # pos - x and y change due to image (row = y, col = x)
         # (y_min, y_max, x_min, x_max)
@@ -44,6 +50,10 @@ class Bot:
         self.moved_too_far_loc = (551, 165)
         self.dino_shoot_loc = (250, 440)
         self.dart_loc = (428, 225)
+        self.supply_drop_resources_text_loc = (170, 240, 110, 370)
+        self.supply_drop_resources_amount_loc = (510, 565, 180, 310)
+        self.dino_collected_text_loc = (160, 270, 50, 460)
+        self.dino_collected_amount_loc = (280, 330, 220, 350)
         self.D = 10
         self.v_max = 10
         
@@ -67,10 +77,16 @@ class Bot:
         # other
         self.number_of_scrolls = 0
         self.max_click = 4
+        self.custom_config = r'--oem 3 --psm 1'
 
         # extra stuff
         self.loading_screen_pic = Image.open(r'figs/loading_screen.png')
-        self.moved_too_far_pic = Image.open(r'figs/moved_too_far.png')
+
+        # supply drop templates
+
+        # 
+        self.supply_collected = {}
+        self.dino_collected = {}
 
 
     def set_app_loc(self, x, y, w, h):
@@ -104,7 +120,22 @@ class Bot:
                                 int(self.dino_shoot_loc_ratio[1]*w))
         self.dart_loc = (int(self.dart_loc_ratio[0]*h), 
                         int(self.dart_loc_ratio[1]*w))
-        
+        self.supply_drop_resources_text_loc = (int(self.supply_drop_resources_text_loc_ratio[0]*h),
+                                                int(self.supply_drop_resources_text_loc_ratio[1]*h),
+                                                int(self.supply_drop_resources_text_loc_ratio[2]*w),
+                                                int(self.supply_drop_resources_text_loc_ratio[3]*w))
+        self.supply_drop_resources_amount_loc = (int(self.supply_drop_resources_amount_loc_ratio[0]*h),
+                                                int(self.supply_drop_resources_amount_loc_ratio[1]*h),
+                                                int(self.supply_drop_resources_amount_loc_ratio[2]*w),
+                                                int(self.supply_drop_resources_amount_loc_ratio[3]*w))        
+        self.dino_collected_text_loc = (int(self.dino_collected_text_loc_ratio[0]*h),
+                                        int(self.dino_collected_text_loc_ratio[1]*h),
+                                        int(self.dino_collected_text_loc_ratio[2]*w),
+                                        int(self.dino_collected_text_loc_ratio[3]*w))
+        self.dino_collected_amount_loc = (int(self.dino_collected_amount_loc_ratio[0]*h),
+                                            int(self.dino_collected_amount_loc_ratio[1]*h),
+                                            int(self.dino_collected_amount_loc_ratio[2]*w),
+                                            int(self.dino_collected_amount_loc_ratio[3]*w))  
         self.D = 10 * h / 831
         self.v_max = 10 * h / 831
 
@@ -125,6 +156,10 @@ class Bot:
         #     pyautogui.scroll(-90)
         #     time.sleep(0.5)
         # pyautogui.keyUp('ctrl')
+
+    # ----------------------------------------------------------
+    #   DETECTION
+    # ----------------------------------------------------------
 
     def locate_x_button(self, background, button_color=None, shift=712):
         """Locate x button to go back to map"""
@@ -258,6 +293,52 @@ class Bot:
         # plt.show()
         return pos  
 
+    # ----------------------------------------------------------
+    #   OCR
+    # ----------------------------------------------------------
+
+    def determine_dino_collected(self, background):
+        if keyboard.is_pressed("q"):
+            raise KeyboardInterrupt
+
+        type_text = background[self.dino_collected_text_loc[0]:self.dino_collected_text_loc[1], 
+                                self.dino_collected_text_loc[2]:self.dino_collected_text_loc[3]].astype(np.uint8)
+        
+        amount_text = background[self.dino_collected_amount_loc[0]:self.dino_collected_amount_loc[1],
+                                self.dino_collected_amount_loc[2]:self.dino_collected_amount_loc[3]]
+
+        config = '--oem 1 --psm 4'
+        key = pytesseract.image_to_string(type_text).split() # "".join(pytesseract.image_to_string(type_text).split()) # , config = self.custom_config).split())
+        number = "".join(pytesseract.image_to_string(amount_text, config = config).split())
+
+        print(key, number) 
+
+    def determine_supply_collected(self, background):
+        """"Determines which supply collected and how much"""
+
+        if keyboard.is_pressed("q"):
+            raise KeyboardInterrupt
+
+        type_text = background[self.supply_drop_resources_text_loc[0]:self.supply_drop_resources_text_loc[1], 
+                                self.supply_drop_resources_text_loc[2]:self.supply_drop_resources_text_loc[3]].astype(np.uint8)
+        
+        amount_text = background[self.supply_drop_resources_amount_loc[0]:self.supply_drop_resources_amount_loc[1],
+                                self.supply_drop_resources_amount_loc[2]:self.supply_drop_resources_amount_loc[3]]
+
+        key = "".join(pytesseract.image_to_string(type_text).split()) # , config = self.custom_config).split())
+        number = "".join(pytesseract.image_to_string(amount_text).split()) #, config = self.custom_config).split())
+
+        print(key, number) 
+        # don't think about the case when it fails right now  
+
+        try:
+            number = int(number[1:])
+        except ValueError:
+            number = None
+
+        if key and number:
+            return key, number
+            
 
     def determine_state(self, background):
         """After you click determine is this supply drop/dino/coin chase etc."""
@@ -267,7 +348,7 @@ class Bot:
 
         state = ""
 
-        custom_config = r'--oem 3 --psm 1'
+        
     
         launch_button = background[self.launch_button_loc[0]:self.launch_button_loc[1], 
                                 self.launch_button_loc[2]:self.launch_button_loc[3]].astype(np.uint8)
@@ -275,8 +356,8 @@ class Bot:
         supply_drop = background[self.supply_drop_text_loc[0]:self.supply_drop_text_loc[1],
                                 self.supply_drop_text_loc[2]:self.supply_drop_text_loc[3]]
 
-        text1 = "".join(pytesseract.image_to_string(launch_button, config = custom_config).split())
-        text2 = "".join(pytesseract.image_to_string(supply_drop, config = custom_config).split())
+        text1 = "".join(pytesseract.image_to_string(launch_button, config = self.custom_config).split())
+        text2 = "".join(pytesseract.image_to_string(supply_drop, config = self.custom_config).split())
 
         print(text1, " - ", text2)
         if "LAUNCH" in text1:
@@ -291,6 +372,10 @@ class Bot:
             state = "coin"
         # elif text2 
         return state
+
+    # ----------------------------------------------------------
+    #   CHANGE LOCATION
+    # ----------------------------------------------------------
 
     def change_location(self, r=300):
         """Randomly change location"""
@@ -383,12 +468,6 @@ class Bot:
         pyautogui.scroll(90)
         time.sleep(1)
 
-    def background_changed(self, b1, b2, threshold=1000):
-        """Compare difference between two frames"""
-        diff = (b1.astype(np.float) - b2.astype(np.float))**2
-        print("DIFF", np.mean(diff))
-        return np.mean(diff) > threshold
-
     def moved_too_far(self, background):
         """"Detects when we move to far."""
         # background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
@@ -405,6 +484,10 @@ class Bot:
         # moved_too_far_resized = np.array(img)[:, :, :3]
         # print("DIST", np.mean((moved_too_far_resized.astype(np.float) - background.astype(np.float))**2))
         # return not self.background_changed(moved_too_far_resized, background, 2000)
+
+    # ----------------------------------------------------------
+    #   DINO COLLECTION
+    # ----------------------------------------------------------
 
     def is_dino_loading_screen(self, background):
         
@@ -470,14 +553,10 @@ class Bot:
         h1, h2, h3 = 5, 2, 2, # 10, 2, 2
         
         # detect dart location 
-        dart_loc = self.dart_loc  # dart_location(background_cropped, shift)
+        dart_loc = self.dart_loc 
         prev_dino_loc = None
         vel = [0, 0]
         buffer = 10
-        # break_time = 
-
-
-        # b_prev = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         
 
         cx = (self.launch_button_loc[2] + self.launch_button_loc[3]) / 2
@@ -512,7 +591,6 @@ class Bot:
                     print("DINO CLOSE SHOOTING")
                     pyautogui.mouseUp()
                     time.sleep(0.25)
-                    # pyautogui.moveTo(self.x+cx, self.y+cy, 0.1)  
                     pyautogui.mouseDown()
                     time.sleep(0.5)
                 else: # if not move screen to dino
@@ -530,11 +608,6 @@ class Bot:
                     # if we are to close move slower
                     slow_down_speed = min(1, (dino_2_dart/((S - h3*battery_left)*D)))
                     mouse_pos = pyautogui.position()
-                    # print("vel", vel, "dino", dino_loc, 
-                    #         "dino_pred", dino_loc_pred, "dart", dart_loc, "dist", dino_2_dart)
-                    
-                    # print(mouse_pos[0] + x_v*T, self.x, self.x + self.w)
-                    # print(mouse_pos[1] + y_v*T, self.y, self.y + self.h)
 
                     # don't go outside the screen
                     dx = min(max(mouse_pos[0] + x_v*slow_down_speed, self.x + buffer), self.x + self.w - buffer)
@@ -556,13 +629,74 @@ class Bot:
         
         print("--"*10)
         print("DONE")
-
         while self.is_dino_loading_screen(background):
             background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
             time.sleep(1)
         time.sleep(1) 
+        # read how much and which dino we shoot it
+        
         pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
         time.sleep(1) 
+
+    def collect_dino(self):
+        """"Finds and shoots the dino"""
+        
+        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        dino_pos = self.detect_dino(background)
+        
+        print("--"*10)
+        print("TOTAL NUMBER OF DINO", len(dino_pos))
+        for i, pos in enumerate(dino_pos):
+            if keyboard.is_pressed("q"):
+                raise KeyboardInterrupt
+
+            background_old = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+            time.sleep(0.2)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+
+            # to many FPs so quick way to eliminate them
+            if not self.background_changed(background_old, background_new):
+                print("--"*10)
+                print("NOTHING THERE")
+                continue
+
+            time.sleep(0.8)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            state = self.determine_state(background_new)
+
+            if state == "dino":
+                cx = (self.launch_button_loc[2] + self.launch_button_loc[3]) / 2
+                cy = (self.launch_button_loc[0] + self.launch_button_loc[1]) / 2
+                pyautogui.click(x=self.x+cx, y=self.y+cy)  
+                time.sleep(1)
+
+                background_loading_screen = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+                while self.is_dino_loading_screen(background_loading_screen):
+                    background_loading_screen = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+                    time.sleep(1)
+
+                print("--"*10)
+                print("TIME TO SHOOT")                
+                
+                time.sleep(2)
+                self.shoot_dino()
+                
+                # there is some bug in JW which is expected when I shoot a dino it turn to original direction
+                for _ in range(self.number_of_scrolls):
+                    self.change_view()
+
+            else:
+                print("--"*10)
+                print("NOT DINO")
+                pos = self.locate_x_button(background_new)
+                pos = pos if pos else self.map_button_loc
+                pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+                time.sleep(1)  
+
+    # ----------------------------------------------------------
+    #   COIN COLLECTION
+    # ----------------------------------------------------------
 
     def collect_coin(self):
         """Collects coin chests"""
@@ -600,69 +734,9 @@ class Bot:
                 pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
                 time.sleep(1)     
 
-    def collect_dino(self):
-        """"Finds and shoots the dino"""
-        
-        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-        dino_pos = self.detect_dino(background)
-        
-        print("--"*10)
-        print("TOTAL NUMBER OF DINO", len(dino_pos))
-        for i, pos in enumerate(dino_pos):
-            #print("--"*10)
-            #print(i, " - ", pos)
-            if keyboard.is_pressed("q"):
-                raise KeyboardInterrupt
-
-            background_old = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
-            time.sleep(0.2)
-            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-
-            # print("DIST", np.mean((background_new.astype(np.float) - background_old.astype(np.float))**2))
-
-            # to many FPs so quick way to eliminate them
-            if not self.background_changed(background_old, background_new):
-                print("--"*10)
-                print("NOTHING THERE")
-                continue
-
-            time.sleep(0.8)
-            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-            state = self.determine_state(background_new)
-
-            if state == "dino":
-                cx = (self.launch_button_loc[2] + self.launch_button_loc[3]) / 2
-                cy = (self.launch_button_loc[0] + self.launch_button_loc[1]) / 2
-                pyautogui.click(x=self.x+cx, y=self.y+cy)  
-                time.sleep(1)
-
-                background_loading_screen = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-                while self.is_dino_loading_screen(background_loading_screen):
-                    background_loading_screen = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-                    time.sleep(1)
-                print("--"*10)
-                print("TIME TO SHOOT")
-
-                
-                time.sleep(3)
-                self.shoot_dino()
-                
-                # there is some bug in JW which is expected when I shoot a dino it turn to original direction
-                for _ in range(self.number_of_scrolls):
-                    self.change_view()
-
-            # elif not self.background_changed(background_old, background_new):
-            #     print("--"*10)
-            #     print("NOTHING THERE 2")
-            #     continue
-            else:
-                print("--"*10)
-                print("NOT DINO")
-                pos = self.locate_x_button(background_new)
-                pos = pos if pos else self.map_button_loc
-                pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
-                time.sleep(1)  
+    # ----------------------------------------------------------
+    #   SUPPLY COLLECTION
+    # ----------------------------------------------------------
 
     def collect_supply_drop(self):
         """"Collects supply drops"""
@@ -702,8 +776,15 @@ class Bot:
                     print("--"*10)
                     print("CLICK")
                     pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)
-                    time.sleep(1.5) 
+                    # time.sleep(1.5) 
+                    time.sleep(2.5) 
                     background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+                    # print()
+                    collected = self.determine_supply_collected(background_new)
+                    if collected:
+                        key, number = collected
+                        tmp = self.supply_collected.get(key, 0)
+                        self.supply_collected[key] = tmp + number
                     count += 1
 
                 # if clicked more than max amount something is wrong
@@ -724,3 +805,13 @@ class Bot:
                 pos = pos if pos else self.map_button_loc
                 pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
                 time.sleep(1)                                       
+
+    # ----------------------------------------------------------
+    #   HELPER
+    # ----------------------------------------------------------
+
+    def background_changed(self, b1, b2, threshold=1000):
+        """Compare difference between two frames"""
+        diff = (b1.astype(np.float) - b2.astype(np.float))**2
+        print("DIFF", np.mean(diff))
+        return np.mean(diff) > threshold
