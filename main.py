@@ -58,4 +58,10 @@ if __name__ == "__main__":
 
             time.sleep(0.1)
     except KeyboardInterrupt:
+        print("--"*10)
+        print("COLLECTED RESOURCES")
+        for key, value in bot.supply_collected.items():
+            print(key, " -- ", value)
+        for key, value in bot.dino_collected.items():
+            print(key, " -- ", value)        
         print('\n')
