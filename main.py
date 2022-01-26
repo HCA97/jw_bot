@@ -38,7 +38,7 @@ if __name__ == "__main__":
                 # bot.collect_coin()
 
                 # get supply drops
-                # bot.collect_supply_drop()                                 
+                bot.collect_supply_drop()                                 
 
 
                 # get dinos

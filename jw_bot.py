@@ -51,8 +51,13 @@ class Bot:
         # color
         # (R_min, G_min, B_min, R_max, G_max, B_max)
         # (R, G, B)
-        self.special_event_color = (0, 180, 0, 50, 255, 30)
-        self.supply_drop_color = (200, 100, 0, 255, 160, 60)
+        # normal
+        # self.special_event_color = (0, 180, 0, 50, 255, 30)
+        # self.supply_drop_color = (200, 100, 0, 255, 160, 60)
+        # lunar new year
+        self.special_event_color = (170, 140, 50, 210, 170, 80)
+        self.supply_drop_color = (150, 120, 0, 170, 160, 40)
+
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
         self.coin_color = (180, 160, 100, 240, 220, 120)
@@ -462,12 +467,13 @@ class Bot:
         v_max = self.v_max
         S = 4
         ms = 0.05
-        h1, h2, h3 = 0, 0, 0, # 10, 2, 2
+        h1, h2, h3 = 5, 2, 2, # 10, 2, 2
         
         # detect dart location 
         dart_loc = self.dart_loc  # dart_location(background_cropped, shift)
         prev_dino_loc = None
         vel = [0, 0]
+        buffer = 10
         # break_time = 
 
 
@@ -506,7 +512,7 @@ class Bot:
                     print("DINO CLOSE SHOOTING")
                     pyautogui.mouseUp()
                     time.sleep(0.25)
-                    pyautogui.moveTo(self.x+cx, self.y+cy, 0.1)  
+                    # pyautogui.moveTo(self.x+cx, self.y+cy, 0.1)  
                     pyautogui.mouseDown()
                     time.sleep(0.5)
                 else: # if not move screen to dino
@@ -531,8 +537,8 @@ class Bot:
                     # print(mouse_pos[1] + y_v*T, self.y, self.y + self.h)
 
                     # don't go outside the screen
-                    dx = min(max(mouse_pos[0] + x_v*slow_down_speed, self.x), self.x + self.w)
-                    dy = min(max(mouse_pos[1] + y_v*slow_down_speed, self.y), self.y + self.h)
+                    dx = min(max(mouse_pos[0] + x_v*slow_down_speed, self.x + buffer), self.x + self.w - buffer)
+                    dy = min(max(mouse_pos[1] + y_v*slow_down_speed, self.y + buffer), self.y + self.h - buffer)
 
                     pyautogui.moveTo(dx, dy, ms)
                 
