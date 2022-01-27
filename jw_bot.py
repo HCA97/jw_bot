@@ -1,5 +1,6 @@
 import time
 
+import matplotlib.pyplot as plt
 import pyautogui
 import keyboard
 import numpy as np
@@ -65,8 +66,8 @@ class Bot:
         # self.special_event_color = (0, 180, 0, 50, 255, 30)
         # self.supply_drop_color = (200, 100, 0, 255, 160, 60)
         # lunar new year
-        self.special_event_color = (170, 140, 50, 210, 170, 80)
-        self.supply_drop_color = (150, 120, 0, 170, 160, 40)
+        self.special_event_color = (170, 140, 50, 230, 190, 100)
+        self.supply_drop_color = (150, 120, 0, 255, 180, 60)
 
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
@@ -90,7 +91,33 @@ class Bot:
 
 
     def set_app_loc(self, x, y, w, h):
+        
+
+        # background = np.array(pyautogui.screenshot())
+        # fig = plt.figure()
+        # plt.imshow(background)
+        # plt.title("CLICK TOP RIGHT CORNER THEN BOTTOM LEFT", fontsize=15)
+
+
+        # def onclick(event):
+        #     # print(event)
+
+        #     if self.x == -1 or self.y == -1:
+        #         self.x, self.y = event.xdata, event.ydata
+        #     elif self.w == -1 or self.h == -1:
+        #         self.w = event.xdata - self.x
+        #         self.h = event.ydata - self.y
+        #         print("DONE")
+        #         print("LOC :", self.x, self.y, "SIZE :", self.w, self.h)
+        #         fig.canvas.mpl_disconnect(cid)
+        #         plt.close()
+
+        # cid = fig.canvas.mpl_connect('button_press_event', onclick)
+        # plt.show()
+
         self.x, self.y, self.w, self.h = x, y, w, h
+        print("LOC :", self.x, self.y, "SIZE :", self.w, self.h)
+
         self.loc = True
 
         # set location according to my screen little bit off is fine
@@ -610,7 +637,7 @@ class Bot:
                     mouse_pos = pyautogui.position()
 
                     # don't go outside the screen
-                    dx = min(max(mouse_pos[0] + x_v*slow_down_speed, self.x + buffer), self.x + self.w - buffer)
+                    dx = min(max(mouse_pos[0] + x_v*slow_down_speed, self.x + buffer), self.x + self.w - 4*buffer)
                     dy = min(max(mouse_pos[1] + y_v*slow_down_speed, self.y + buffer), self.y + self.h - buffer)
 
                     pyautogui.moveTo(dx, dy, ms)
@@ -758,18 +785,22 @@ class Bot:
 
 
             state = self.determine_state(background_new)
-
             if state == "supply":
                 print("--"*10)
                 print("CLICKING SUPPLY DROP")
 
+                background_tmp = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
                 # activate the supply drop
                 pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)  
                 time.sleep(2) 
-
                 background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-                count = 0
+                if not self.background_changed(background_new, background_tmp):
+                    pos = self.locate_x_button(background_new)
+                    if pos:
+                        pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+                        time.sleep(1) 
 
+                count = 0
                 # loop until max click is reached or we are in the old background
                 while self.max_click >= count and \
                       self.background_changed(background_old, background_new):

@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
 
                 # get dinos
-                bot.collect_dino()
+                # bot.collect_dino()
 
                 if bot.number_of_scrolls > max_scrolls:
                     # move location
