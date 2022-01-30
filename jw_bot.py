@@ -71,7 +71,9 @@ class Bot:
 
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
-        self.coin_color = (180, 160, 100, 240, 220, 120)
+        # self.coin_color = (180, 160, 100, 240, 220, 120)
+        self.coin_color = (200, 50, 20, 255, 140, 50)
+
         self.battery_color = (10, 30, 80)
         self.dino_loading_screen_color = (230, 230, 230)
 
@@ -273,7 +275,7 @@ class Bot:
         # find center of mass
         for label in range(1, labels.max()+1):
             rows, cols = np.where(labels == label)
-            if len(rows) > 20:
+            if len(rows) > 15:
                 pos.append([self.shooting_zone[0] + int(np.mean(rows)), self.shooting_zone[2] + int(np.mean(cols))])
 
         return pos
@@ -395,7 +397,7 @@ class Bot:
             "DROP" in text2 or \
             text2 == "SUPPLYDROP":
             state = "supply"
-        elif "COIN" in text2 or "CHASE" in text2:
+        elif "COIN" in text2 or "CHASE" in text2 or "NEW" in text2 or "YEAR" in text2:
             state = "coin"
         # elif text2 
         return state
@@ -811,11 +813,11 @@ class Bot:
                     time.sleep(2.5) 
                     background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
                     # print()
-                    collected = self.determine_supply_collected(background_new)
-                    if collected:
-                        key, number = collected
-                        tmp = self.supply_collected.get(key, 0)
-                        self.supply_collected[key] = tmp + number
+                    # collected = self.determine_supply_collected(background_new)
+                    # if collected:
+                    #     key, number = collected
+                    #     tmp = self.supply_collected.get(key, 0)
+                    #     self.supply_collected[key] = tmp + number
                     count += 1
 
                 # if clicked more than max amount something is wrong
