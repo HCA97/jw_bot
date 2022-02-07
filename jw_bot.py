@@ -38,6 +38,7 @@ class Bot:
         # self.dino_collected_text_loc_ratio = (160 / 891, 340 / 891, 50 / 513, 460 / 513)
 
         self.dino_collected_amount_loc_ratio = (280 / 891, 330 / 891, 210 / 513, 350 / 513)
+        self.center_loc_ratio = (587 / 954, 257 / 550)
 
         # pos - x and y change due to image (row = y, col = x)
         # (y_min, y_max, x_min, x_max)
@@ -55,6 +56,7 @@ class Bot:
         self.supply_drop_resources_amount_loc = (510, 565, 180, 310)
         self.dino_collected_text_loc = (160, 270, 50, 460)
         self.dino_collected_amount_loc = (280, 330, 220, 350)
+        self.center_loc = (587, 257)
         self.D = 10
         self.v_max = 10
         
@@ -63,16 +65,17 @@ class Bot:
         # (R_min, G_min, B_min, R_max, G_max, B_max)
         # (R, G, B)
         # normal
-        # self.special_event_color = (0, 180, 0, 50, 255, 30)
-        # self.supply_drop_color = (200, 100, 0, 255, 160, 60)
+        self.special_event_color = (0, 180, 0, 50, 255, 30)
+        self.supply_drop_color = (200, 100, 0, 255, 160, 60)
         # lunar new year
-        self.special_event_color = (170, 140, 50, 230, 190, 100)
-        self.supply_drop_color = (150, 120, 0, 255, 180, 60)
+        # self.special_event_color = (170, 140, 50, 230, 190, 100)
+        # self.supply_drop_color = (150, 120, 0, 255, 180, 60)
 
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
         # self.coin_color = (180, 160, 100, 240, 220, 120)
-        self.coin_color = (200, 50, 20, 255, 140, 50)
+        # self.coin_color = (200, 50, 20, 255, 140, 50)
+        self.coin_color = (20, 35, 130, 95, 95, 170)
 
         self.battery_color = (10, 30, 80)
         self.dino_loading_screen_color = (230, 230, 230)
@@ -175,6 +178,7 @@ class Bot:
                                             int(self.dino_collected_amount_loc_ratio[1]*h),
                                             int(self.dino_collected_amount_loc_ratio[2]*w),
                                             int(self.dino_collected_amount_loc_ratio[3]*w))  
+        self.center_loc = (int(self.center_loc_ratio[0]*h), int(self.center_loc_ratio[1]*w))
         self.D = 10 * h / 831
         self.v_max = 10 * h / 831
 
@@ -255,82 +259,84 @@ class Bot:
 
         return pos
 
-    # def detect_coins(self, background):
-    #     """Detects coin chests, but there might be false positives"""
-    #     if keyboard.is_pressed("q"):
-    #         raise KeyboardInterrupt
-
-    #     pos = []
-
-    #     # threshold + clean up
-    #     background_cropped = background[self.shooting_zone[0]:self.shooting_zone[1],
-    #                                     self.shooting_zone[2]:self.shooting_zone[3]]
-    #     mask = (background_cropped[:,:,0] >= self.coin_color[0]) * \
-    #             (background_cropped[:,:,1] >= self.coin_color[1]) * \
-    #             (background_cropped[:,:,2] >= self.coin_color[2]) * \
-    #             (background_cropped[:,:,0] <= self.coin_color[3]) * \
-    #             (background_cropped[:,:,1] <= self.coin_color[4]) * \
-    #             (background_cropped[:,:,2] <= self.coin_color[5])
-    #     mask = morphology.binary_opening(mask, np.ones((3,3)))
-    #     mask = morphology.binary_closing(mask, np.ones((5,5)))
-    #     # connected components
-    #     labels = measure.label(mask, background=0, connectivity=2)
-
-
-    #     # import matplotlib.pyplot as plt
-    #     # plt.figure(2)
-    #     # plt.imshow(labels)
-    #     # plt.show()
-
-    #     # find center of mass
-    #     for label in range(1, labels.max()+1):
-    #         rows, cols = np.where(labels == label)
-    #         if len(rows) > 15:
-    #             pos.append([self.shooting_zone[0] + int(np.mean(rows)), self.shooting_zone[2] + int(np.mean(cols))])
-
-    #     return pos
-
     def detect_coins(self, background):
         """Detects coin chests, but there might be false positives"""
         if keyboard.is_pressed("q"):
             raise KeyboardInterrupt
 
         pos = []
+
+        # threshold + clean up
         background_cropped = background[self.shooting_zone[0]:self.shooting_zone[1],
                                         self.shooting_zone[2]:self.shooting_zone[3]]
-        background_cropped_gray = color.rgb2gray(background_cropped)
+        mask = (background_cropped[:,:,0] >= self.coin_color[0]) * \
+                (background_cropped[:,:,1] >= self.coin_color[1]) * \
+                (background_cropped[:,:,2] >= self.coin_color[2]) * \
+                (background_cropped[:,:,0] <= self.coin_color[3]) * \
+                (background_cropped[:,:,1] <= self.coin_color[4]) * \
+                (background_cropped[:,:,2] <= self.coin_color[5])
+        mask = morphology.binary_opening(mask, np.ones((3,3)))
+        mask = morphology.binary_closing(mask, np.ones((5,5)))
+        # connected components
+        labels = measure.label(mask, background=0, connectivity=2)
+
+
         # import matplotlib.pyplot as plt
+        # plt.figure(2)
+        # plt.imshow(labels)
+        # plt.show()
 
-        pos = []
-        corr = np.zeros_like(background_cropped_gray)
-        for template in self.coin_chests:
-            # for ang in [0, 90, 180, 270]:
-                # template_gray = color.rgb2gray(transform.rotate(template, ang))
-            template_gray = color.rgb2gray(template)
-            result = feature.match_template(feature.canny(background_cropped_gray, sigma=2), 
-                                            feature.canny(template_gray, sigma=2), mode="reflect")
-            corr += transform.resize(result, corr.shape, anti_aliasing=True)
-            # corr += feature.match_template(filters.sobel(background_cropped_gray), 
-            #                                 filters.sobel(template_gray), pad_input=True, mode="reflect")
-        corr = corr / len(self.coin_chests)
-        coordinates = feature.peak_local_max(corr, min_distance=50, threshold_abs=0.1)
-        import matplotlib.pyplot as plt
-        plt.figure(2)
-        plt.imshow(corr, vmax=1, vmin=-1)
-        plt.figure(3)
-        plt.imshow(background_cropped)
-        plt.plot(coordinates[:, 1], coordinates[:, 0], 'r.')
-        plt.figure(4)
-        plt.imshow(filters.sobel(template_gray))
-        plt.show()
-
-        # # find center of mass
-        # for label in range(1, labels.max()+1):
-        #     rows, cols = np.where(labels == label)
-        #     if len(rows) > 15:
-        #         pos.append([self.shooting_zone[0] + int(np.mean(rows)), self.shooting_zone[2] + int(np.mean(cols))])
+        # find center of mass
+        for label in range(1, labels.max()+1):
+            rows, cols = np.where(labels == label)
+            if len(rows) > 15:
+                pos.append([self.shooting_zone[0] + int(np.mean(rows)), self.shooting_zone[2] + int(np.mean(cols))])
 
         return pos
+
+    # def detect_coins(self, background):
+    #     """Detects coin chests, but there might be false positives"""
+    #     if keyboard.is_pressed("q"):
+    #         raise KeyboardInterrupt
+
+    #     pos = []
+    #     background_cropped = background[self.shooting_zone[0]:self.shooting_zone[1],
+    #                                     self.shooting_zone[2]:self.shooting_zone[3]]
+    #     background_cropped_gray = color.rgb2gray(background_cropped)
+    #     # import matplotlib.pyplot as plt
+
+    #     pos = []
+    #     corr = np.zeros_like(background_cropped_gray)
+    #     for template in self.coin_chests:
+    #         # for ang in [0, 90, 180, 270]:
+    #             # template_gray = color.rgb2gray(transform.rotate(template, ang))
+    #         template_gray = color.rgb2gray(template)
+    #         # result = feature.match_template(feature.canny(background_cropped_gray, sigma=2), 
+    #         #                                 feature.canny(template_gray, sigma=2), mode="reflect")
+    #         result = feature.match_template(filters.sobel(background_cropped_gray), 
+    #                                         filters.sobel(template_gray), pad_input=True, mode="reflect")
+    #         corr += transform.resize(result, corr.shape, anti_aliasing=True)
+    #         # corr += feature.match_template(filters.sobel(background_cropped_gray), 
+    #         #                                 filters.sobel(template_gray), pad_input=True, mode="reflect")
+    #     corr = corr / len(self.coin_chests)
+    #     coordinates = feature.peak_local_max(corr, min_distance=50, threshold_abs=0.1)
+    #     import matplotlib.pyplot as plt
+    #     plt.figure(2)
+    #     plt.imshow(corr, vmax=1, vmin=-1)
+    #     plt.figure(3)
+    #     plt.imshow(background_cropped)
+    #     plt.plot(coordinates[:, 1], coordinates[:, 0], 'r.')
+    #     plt.figure(4)
+    #     plt.imshow(filters.sobel(template_gray))
+    #     plt.show()
+
+    #     # # find center of mass
+    #     # for label in range(1, labels.max()+1):
+    #     #     rows, cols = np.where(labels == label)
+    #     #     if len(rows) > 15:
+    #     #         pos.append([self.shooting_zone[0] + int(np.mean(rows)), self.shooting_zone[2] + int(np.mean(cols))])
+
+    #     return pos
 
     def detect_dino(self, background):
         """Finds the location of dino but there are false positives need more cleaning"""
@@ -783,15 +789,28 @@ class Bot:
         """Collects coin chests"""
         background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         coin_pos = self.detect_coins(background)
+
         for pos in coin_pos:
             if keyboard.is_pressed("q"):
                 raise KeyboardInterrupt
 
-            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
-            time.sleep(1)
+            if np.sqrt((pos[0] - self.center_loc[0])**2 + (pos[1] - self.center_loc[1])**2) < 30:
+                continue
 
-            background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-            state = self.determine_state(background)
+            background_old = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+            time.sleep(0.2)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+
+            # to many FPs so quick way to eliminate them
+            if not self.background_changed(background_old, background_new):
+                print("--"*10)
+                print("NOTHING THERE")
+                continue
+
+            time.sleep(0.8)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            state = self.determine_state(background_new)
             if state == "coin":
                 print("--"*10)
                 print("CLICKING COIN")

@@ -38,11 +38,11 @@ if __name__ == "__main__":
                 bot.collect_coin()
 
                 # get supply drops
-                bot.collect_supply_drop()                                 
+                # bot.collect_supply_drop()                                 
 
 
                 # get dinos
-                bot.collect_dino()
+                # bot.collect_dino()
 
                 if bot.number_of_scrolls > max_scrolls:
                     # move location
