@@ -23,7 +23,7 @@ class Bot:
 
 
         # get the ratios (I get it from my PC to fit other screen sizes)
-        self.shooting_zone_ratio = (230 / 831, 720 / 831, 10 / 481, 440 / 481)
+        self.shooting_zone_ratio = (230 / 831, 740 / 971, 10 / 481, 440 / 481)
         self.launch_button_loc_ratio = (650 / 831, 712 / 831, 132 / 481, 310 / 481)
         self.supply_drop_text_loc_ratio = (92 / 831, 132 / 831, 110 /481, 330 / 481)
         self.map_button_loc_ratio = (786 / 831, 222 / 481)
@@ -53,7 +53,6 @@ class Bot:
         self.dino_shoot_loc = (250, 440)
         self.dart_loc = (428, 225)
         self.supply_drop_resources_text_loc = (170, 240, 110, 370)
-        self.supply_drop_resources_amount_loc = (510, 565, 180, 310)
         self.dino_collected_text_loc = (160, 270, 50, 460)
         self.dino_collected_amount_loc = (280, 330, 220, 350)
         self.center_loc = (587, 257)
@@ -70,12 +69,21 @@ class Bot:
         # lunar new year
         # self.special_event_color = (170, 140, 50, 230, 190, 100)
         # self.supply_drop_color = (150, 120, 0, 255, 180, 60)
+        # valentine
+        # self.special_event_color = (0, 140, 0, 100, 255, 100)
+        # self.supply_drop_color = (180, 0, 0, 255, 100, 120)        
+
 
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
-        # self.coin_color = (180, 160, 100, 240, 220, 120)
+        # default
+        self.coin_color = (180, 160, 100, 240, 220, 120)
+        # lunar new year
         # self.coin_color = (200, 50, 20, 255, 140, 50)
-        self.coin_color = (20, 35, 130, 95, 95, 170)
+        # winter games
+        # self.coin_color = (20, 35, 130, 95, 95, 170)
+        # valentine
+        # self.coin_color = (180, 0, 0, 255, 100, 120) 
 
         self.battery_color = (10, 30, 80)
         self.dino_loading_screen_color = (230, 230, 230)
@@ -455,7 +463,8 @@ class Bot:
             "DROP" in text2 or \
             text2 == "SUPPLYDROP":
             state = "supply"
-        elif "COIN" in text2 or "CHASE" in text2 or "NEW" in text2 or "YEAR" in text2:
+        elif "COIN" in text2 or "CHASE" in text2 or "NEW" in text2 or \
+            "YEAR" in text2 or "TINE" in text2 or "DAY" in text2:
             state = "coin"
         # elif text2 
         return state
@@ -606,15 +615,17 @@ class Bot:
     def shoot_dino(self):
         """Shoots the dino"""
 
-        def dino_location(background, shift):
+        def dino_location(background, shift, D):
             """Find the critical point"""
             pos = []
+            D_ = D
 
 
             mask = (background[:,:,0] >= 100) * \
                    (background[:,:,1] >= 140) * \
                    (background[:,:,2] >= 180)  
 
+            mask = filters.median(mask, np.ones((3, 3)))
             mask = morphology.binary_opening(mask, np.ones((1, 5)))
             mask = morphology.binary_opening(mask, np.ones((5, 1)))
 
@@ -623,17 +634,17 @@ class Bot:
                 # labels = measure.label(mask)
                 rows, cols = np.where(dist >= np.max(dist))
                 pos = [shift + np.mean(rows), np.mean(cols)]
-
+                D_ =  np.max(dist) if np.max(dist) - 5 > 0 else D
                 # import matplotlib.pyplot as plt
                 # plt.figure(1)
                 # plt.imshow(mask)
                 # plt.figure(2)
                 # plt.imshow(dist)
                 # plt.show()
-            return pos
+            return pos, D_
         
         # hyper parameters
-        D = 2*self.D
+        # D = 2*self.D
         v_max = self.v_max
         S = 4
         ms = 0.05
@@ -654,7 +665,10 @@ class Bot:
         
         background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
 
-        while not self.is_dino_loading_screen(background):
+        start = time.time()
+        end = start
+
+        while not self.is_dino_loading_screen(background) and end - start < 60:
             
             if keyboard.is_pressed("q"):
                 raise KeyboardInterrupt
@@ -662,7 +676,9 @@ class Bot:
             # b_prev = background
             background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
             background_cropped = background[self.dino_shoot_loc[0]:,:self.dino_shoot_loc[1],:]
-            dino_loc = dino_location(background_cropped, self.dino_shoot_loc[0])
+            dino_loc, D = dino_location(background_cropped, self.dino_shoot_loc[0], 2*self.D)
+            
+            end = time.time()
 
             if not dino_loc and prev_dino_loc:
                 dino_loc = [prev_dino_loc[0] + vel[0],
@@ -714,16 +730,26 @@ class Bot:
                 pyautogui.mouseDown() 
             # print("DIST", np.mean((b_prev.astype(np.float) - background.astype(np.float))**2))
         
-        print("--"*10)
-        print("DONE")
-        while self.is_dino_loading_screen(background):
-            background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-            time.sleep(1)
-        time.sleep(1) 
-        # read how much and which dino we shoot it
-        
-        pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
-        time.sleep(1) 
+        if end - start > 60:
+            pyautogui.mouseUp()
+            time.sleep(0.25)
+            pyautogui.mouseDown()
+            time.sleep(60)  
+
+            pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
+            time.sleep(1)           
+
+        else:
+            print("--"*10)
+            print("DONE")
+            while self.is_dino_loading_screen(background):
+                background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+                time.sleep(1)
+            time.sleep(1) 
+            # read how much and which dino we shoot it
+            
+            pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
+            time.sleep(1) 
 
     def collect_dino(self):
         """"Finds and shoots the dino"""
