@@ -72,18 +72,27 @@ class Bot:
         # valentine
         # self.special_event_color = (0, 140, 0, 100, 255, 100)
         # self.supply_drop_color = (180, 0, 0, 255, 100, 120)        
-
+        # st. petersburg
+        self.special_event_color = (0, 140, 0, 45, 255, 45)
+        self.supply_drop_color = (60, 60, 0, 210, 210, 120)      
 
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
         # default
-        self.coin_color = (180, 160, 100, 240, 220, 120)
+        # self.coin_color = (180, 160, 100, 240, 220, 120)
         # lunar new year
         # self.coin_color = (200, 50, 20, 255, 140, 50)
         # winter games
         # self.coin_color = (20, 35, 130, 95, 95, 170)
         # valentine
         # self.coin_color = (180, 0, 0, 255, 100, 120) 
+        # festival
+        # self.coin_color = (20, 35, 130, 95, 95, 170)
+        # something
+        # self.coin_color = (130, 150, 150, 175, 175, 200)
+        # self.coin_color = (175, 175, 150, 225, 225, 225)
+        # st. petersburg
+        self.coin_color = (60, 60, 0, 210, 210, 120)   
 
         self.battery_color = (10, 30, 80)
         self.dino_loading_screen_color = (230, 230, 230)
@@ -95,14 +104,15 @@ class Bot:
 
         # extra stuff
         self.loading_screen_pic = Image.open(r'figs/loading_screen.png')
+        self.moved_too_far_pic = Image.open(r'figs/moved_too_far.PNG')
 
-        self.coin_chests = [
-            np.array(Image.open(r'figs/lunar_event_coin_chase_1.png')),
-            np.array(Image.open(r'figs/lunar_event_coin_chase_2.png')),
-            np.array(Image.open(r'figs/lunar_event_coin_chase_3.png')),
-            np.array(Image.open(r'figs/lunar_event_coin_chase_4.png')),
-            np.array(Image.open(r'figs/lunar_event_coin_chase_5.png')),
-        ]
+        # self.coin_chests = [
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_1.png')),
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_2.png')),
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_3.png')),
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_4.png')),
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_5.png')),
+        # ]
 
         # self.default_size = ()
 
@@ -187,7 +197,7 @@ class Bot:
                                             int(self.dino_collected_amount_loc_ratio[2]*w),
                                             int(self.dino_collected_amount_loc_ratio[3]*w))  
         self.center_loc = (int(self.center_loc_ratio[0]*h), int(self.center_loc_ratio[1]*w))
-        self.D = 10 * h / 831
+        self.D = 7 * h / 831 # 10 * h / 831
         self.v_max = 10 * h / 831
 
         # scroll down
@@ -464,7 +474,7 @@ class Bot:
             text2 == "SUPPLYDROP":
             state = "supply"
         elif "COIN" in text2 or "CHASE" in text2 or "NEW" in text2 or \
-            "YEAR" in text2 or "TINE" in text2 or "DAY" in text2:
+            "YEAR" in text2 or "TINE" in text2 or "DAY" in text2 or "GOLD" in text2:
             state = "coin"
         # elif text2 
         return state
@@ -535,6 +545,7 @@ class Bot:
         pyautogui.keyUp('ctrl')
         pyautogui.keyUp('shift')
         time.sleep(5)
+        # time.sleep(7.5)
 
         # click launch button incase we move so far
         background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
@@ -566,7 +577,7 @@ class Bot:
 
     def moved_too_far(self, background):
         """"Detects when we move to far."""
-        # background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         color = background[self.moved_too_far_loc[0], 
                            self.moved_too_far_loc[1], :]
         # print(color)
@@ -644,7 +655,7 @@ class Bot:
             return pos, D_
         
         # hyper parameters
-        # D = 2*self.D
+        D = 2*self.D
         v_max = self.v_max
         S = 4
         ms = 0.05
@@ -676,7 +687,7 @@ class Bot:
             # b_prev = background
             background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
             background_cropped = background[self.dino_shoot_loc[0]:,:self.dino_shoot_loc[1],:]
-            dino_loc, D = dino_location(background_cropped, self.dino_shoot_loc[0], 2*self.D)
+            dino_loc, _ = dino_location(background_cropped, self.dino_shoot_loc[0], 2*self.D)
             
             end = time.time()
 
@@ -877,11 +888,19 @@ class Bot:
             if keyboard.is_pressed("q"):
                 raise KeyboardInterrupt
 
-            background_old= np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))   
+            background_old = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
             pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
-            time.sleep(1)
+            time.sleep(0.2)
             background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
 
+            # to many FPs so quick way to eliminate them
+            if not self.background_changed(background_old, background_new):
+                print("--"*10)
+                print("NOTHING THERE")
+                continue
+
+            time.sleep(0.8)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
 
             state = self.determine_state(background_new)
             if state == "supply":
@@ -924,9 +943,9 @@ class Bot:
                         pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
                         time.sleep(1) 
 
-            elif not self.background_changed(background_old, background_new):
-                print("--"*10)
-                print("NOTHING THERE")
+            # elif not self.background_changed(background_old, background_new):
+            #     print("--"*10)
+            #     print("NOTHING THERE")
             else:
                 print("--"*10)
                 print("NOT SUPPLY DROP")
