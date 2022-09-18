@@ -6,7 +6,7 @@ import keyboard
 import numpy as np
 from PIL import Image
 import pytesseract
-from skimage import measure, morphology, filters
+from skimage import measure, morphology, filters, feature, color, transform
 from scipy import ndimage
 
 # CHANGE THIS!
@@ -23,7 +23,7 @@ class Bot:
 
 
         # get the ratios (I get it from my PC to fit other screen sizes)
-        self.shooting_zone_ratio = (230 / 831, 720 / 831, 10 / 481, 440 / 481)
+        self.shooting_zone_ratio = (230 / 831, 740 / 971, 10 / 481, 440 / 481)
         self.launch_button_loc_ratio = (650 / 831, 712 / 831, 132 / 481, 310 / 481)
         self.supply_drop_text_loc_ratio = (92 / 831, 132 / 831, 110 /481, 330 / 481)
         self.map_button_loc_ratio = (786 / 831, 222 / 481)
@@ -38,6 +38,7 @@ class Bot:
         # self.dino_collected_text_loc_ratio = (160 / 891, 340 / 891, 50 / 513, 460 / 513)
 
         self.dino_collected_amount_loc_ratio = (280 / 891, 330 / 891, 210 / 513, 350 / 513)
+        self.center_loc_ratio = (587 / 954, 257 / 550)
 
         # pos - x and y change due to image (row = y, col = x)
         # (y_min, y_max, x_min, x_max)
@@ -52,9 +53,9 @@ class Bot:
         self.dino_shoot_loc = (250, 440)
         self.dart_loc = (428, 225)
         self.supply_drop_resources_text_loc = (170, 240, 110, 370)
-        self.supply_drop_resources_amount_loc = (510, 565, 180, 310)
         self.dino_collected_text_loc = (160, 270, 50, 460)
         self.dino_collected_amount_loc = (280, 330, 220, 350)
+        self.center_loc = (587, 257)
         self.D = 10
         self.v_max = 10
         
@@ -63,16 +64,35 @@ class Bot:
         # (R_min, G_min, B_min, R_max, G_max, B_max)
         # (R, G, B)
         # normal
-        # self.special_event_color = (0, 180, 0, 50, 255, 30)
-        # self.supply_drop_color = (200, 100, 0, 255, 160, 60)
+        self.special_event_color = (0, 180, 0, 50, 255, 30)
+        self.supply_drop_color = (200, 100, 0, 255, 160, 60)
         # lunar new year
-        self.special_event_color = (170, 140, 50, 230, 190, 100)
-        self.supply_drop_color = (150, 120, 0, 255, 180, 60)
+        # self.special_event_color = (170, 140, 50, 230, 190, 100)
+        # self.supply_drop_color = (150, 120, 0, 255, 180, 60)
+        # valentine
+        # self.special_event_color = (0, 140, 0, 100, 255, 100)
+        # self.supply_drop_color = (180, 0, 0, 255, 100, 120)        
+        # st. petersburg
+        self.special_event_color = (0, 140, 0, 45, 255, 45)
+        self.supply_drop_color = (60, 60, 0, 210, 210, 120)      
 
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
+        # default
         # self.coin_color = (180, 160, 100, 240, 220, 120)
-        self.coin_color = (200, 50, 20, 255, 140, 50)
+        # lunar new year
+        # self.coin_color = (200, 50, 20, 255, 140, 50)
+        # winter games
+        # self.coin_color = (20, 35, 130, 95, 95, 170)
+        # valentine
+        # self.coin_color = (180, 0, 0, 255, 100, 120) 
+        # festival
+        # self.coin_color = (20, 35, 130, 95, 95, 170)
+        # something
+        # self.coin_color = (130, 150, 150, 175, 175, 200)
+        # self.coin_color = (175, 175, 150, 225, 225, 225)
+        # st. petersburg
+        self.coin_color = (60, 60, 0, 210, 210, 120)   
 
         self.battery_color = (10, 30, 80)
         self.dino_loading_screen_color = (230, 230, 230)
@@ -84,6 +104,17 @@ class Bot:
 
         # extra stuff
         self.loading_screen_pic = Image.open(r'figs/loading_screen.png')
+        self.moved_too_far_pic = Image.open(r'figs/moved_too_far.PNG')
+
+        # self.coin_chests = [
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_1.png')),
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_2.png')),
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_3.png')),
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_4.png')),
+        #     np.array(Image.open(r'figs/lunar_event_coin_chase_5.png')),
+        # ]
+
+        # self.default_size = ()
 
         # supply drop templates
 
@@ -165,7 +196,8 @@ class Bot:
                                             int(self.dino_collected_amount_loc_ratio[1]*h),
                                             int(self.dino_collected_amount_loc_ratio[2]*w),
                                             int(self.dino_collected_amount_loc_ratio[3]*w))  
-        self.D = 10 * h / 831
+        self.center_loc = (int(self.center_loc_ratio[0]*h), int(self.center_loc_ratio[1]*w))
+        self.D = 7 * h / 831 # 10 * h / 831
         self.v_max = 10 * h / 831
 
         # scroll down
@@ -279,6 +311,50 @@ class Bot:
                 pos.append([self.shooting_zone[0] + int(np.mean(rows)), self.shooting_zone[2] + int(np.mean(cols))])
 
         return pos
+
+    # def detect_coins(self, background):
+    #     """Detects coin chests, but there might be false positives"""
+    #     if keyboard.is_pressed("q"):
+    #         raise KeyboardInterrupt
+
+    #     pos = []
+    #     background_cropped = background[self.shooting_zone[0]:self.shooting_zone[1],
+    #                                     self.shooting_zone[2]:self.shooting_zone[3]]
+    #     background_cropped_gray = color.rgb2gray(background_cropped)
+    #     # import matplotlib.pyplot as plt
+
+    #     pos = []
+    #     corr = np.zeros_like(background_cropped_gray)
+    #     for template in self.coin_chests:
+    #         # for ang in [0, 90, 180, 270]:
+    #             # template_gray = color.rgb2gray(transform.rotate(template, ang))
+    #         template_gray = color.rgb2gray(template)
+    #         # result = feature.match_template(feature.canny(background_cropped_gray, sigma=2), 
+    #         #                                 feature.canny(template_gray, sigma=2), mode="reflect")
+    #         result = feature.match_template(filters.sobel(background_cropped_gray), 
+    #                                         filters.sobel(template_gray), pad_input=True, mode="reflect")
+    #         corr += transform.resize(result, corr.shape, anti_aliasing=True)
+    #         # corr += feature.match_template(filters.sobel(background_cropped_gray), 
+    #         #                                 filters.sobel(template_gray), pad_input=True, mode="reflect")
+    #     corr = corr / len(self.coin_chests)
+    #     coordinates = feature.peak_local_max(corr, min_distance=50, threshold_abs=0.1)
+    #     import matplotlib.pyplot as plt
+    #     plt.figure(2)
+    #     plt.imshow(corr, vmax=1, vmin=-1)
+    #     plt.figure(3)
+    #     plt.imshow(background_cropped)
+    #     plt.plot(coordinates[:, 1], coordinates[:, 0], 'r.')
+    #     plt.figure(4)
+    #     plt.imshow(filters.sobel(template_gray))
+    #     plt.show()
+
+    #     # # find center of mass
+    #     # for label in range(1, labels.max()+1):
+    #     #     rows, cols = np.where(labels == label)
+    #     #     if len(rows) > 15:
+    #     #         pos.append([self.shooting_zone[0] + int(np.mean(rows)), self.shooting_zone[2] + int(np.mean(cols))])
+
+    #     return pos
 
     def detect_dino(self, background):
         """Finds the location of dino but there are false positives need more cleaning"""
@@ -397,7 +473,8 @@ class Bot:
             "DROP" in text2 or \
             text2 == "SUPPLYDROP":
             state = "supply"
-        elif "COIN" in text2 or "CHASE" in text2 or "NEW" in text2 or "YEAR" in text2:
+        elif "COIN" in text2 or "CHASE" in text2 or "NEW" in text2 or \
+            "YEAR" in text2 or "TINE" in text2 or "DAY" in text2 or "GOLD" in text2:
             state = "coin"
         # elif text2 
         return state
@@ -468,6 +545,7 @@ class Bot:
         pyautogui.keyUp('ctrl')
         pyautogui.keyUp('shift')
         time.sleep(5)
+        # time.sleep(7.5)
 
         # click launch button incase we move so far
         background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
@@ -499,7 +577,7 @@ class Bot:
 
     def moved_too_far(self, background):
         """"Detects when we move to far."""
-        # background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+        background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         color = background[self.moved_too_far_loc[0], 
                            self.moved_too_far_loc[1], :]
         # print(color)
@@ -548,15 +626,17 @@ class Bot:
     def shoot_dino(self):
         """Shoots the dino"""
 
-        def dino_location(background, shift):
+        def dino_location(background, shift, D):
             """Find the critical point"""
             pos = []
+            D_ = D
 
 
             mask = (background[:,:,0] >= 100) * \
                    (background[:,:,1] >= 140) * \
                    (background[:,:,2] >= 180)  
 
+            mask = filters.median(mask, np.ones((3, 3)))
             mask = morphology.binary_opening(mask, np.ones((1, 5)))
             mask = morphology.binary_opening(mask, np.ones((5, 1)))
 
@@ -565,14 +645,14 @@ class Bot:
                 # labels = measure.label(mask)
                 rows, cols = np.where(dist >= np.max(dist))
                 pos = [shift + np.mean(rows), np.mean(cols)]
-
+                D_ =  np.max(dist) if np.max(dist) - 5 > 0 else D
                 # import matplotlib.pyplot as plt
                 # plt.figure(1)
                 # plt.imshow(mask)
                 # plt.figure(2)
                 # plt.imshow(dist)
                 # plt.show()
-            return pos
+            return pos, D_
         
         # hyper parameters
         D = 2*self.D
@@ -596,7 +676,10 @@ class Bot:
         
         background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
 
-        while not self.is_dino_loading_screen(background):
+        start = time.time()
+        end = start
+
+        while not self.is_dino_loading_screen(background) and end - start < 60:
             
             if keyboard.is_pressed("q"):
                 raise KeyboardInterrupt
@@ -604,7 +687,9 @@ class Bot:
             # b_prev = background
             background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
             background_cropped = background[self.dino_shoot_loc[0]:,:self.dino_shoot_loc[1],:]
-            dino_loc = dino_location(background_cropped, self.dino_shoot_loc[0])
+            dino_loc, _ = dino_location(background_cropped, self.dino_shoot_loc[0], 2*self.D)
+            
+            end = time.time()
 
             if not dino_loc and prev_dino_loc:
                 dino_loc = [prev_dino_loc[0] + vel[0],
@@ -656,16 +741,26 @@ class Bot:
                 pyautogui.mouseDown() 
             # print("DIST", np.mean((b_prev.astype(np.float) - background.astype(np.float))**2))
         
-        print("--"*10)
-        print("DONE")
-        while self.is_dino_loading_screen(background):
-            background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-            time.sleep(1)
-        time.sleep(1) 
-        # read how much and which dino we shoot it
-        
-        pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
-        time.sleep(1) 
+        if end - start > 60:
+            pyautogui.mouseUp()
+            time.sleep(0.25)
+            pyautogui.mouseDown()
+            time.sleep(60)  
+
+            pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
+            time.sleep(1)           
+
+        else:
+            print("--"*10)
+            print("DONE")
+            while self.is_dino_loading_screen(background):
+                background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+                time.sleep(1)
+            time.sleep(1) 
+            # read how much and which dino we shoot it
+            
+            pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
+            time.sleep(1) 
 
     def collect_dino(self):
         """"Finds and shoots the dino"""
@@ -731,15 +826,28 @@ class Bot:
         """Collects coin chests"""
         background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
         coin_pos = self.detect_coins(background)
+
         for pos in coin_pos:
             if keyboard.is_pressed("q"):
                 raise KeyboardInterrupt
 
-            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
-            time.sleep(1)
+            if np.sqrt((pos[0] - self.center_loc[0])**2 + (pos[1] - self.center_loc[1])**2) < 30:
+                continue
 
-            background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
-            state = self.determine_state(background)
+            background_old = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
+            time.sleep(0.2)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+
+            # to many FPs so quick way to eliminate them
+            if not self.background_changed(background_old, background_new):
+                print("--"*10)
+                print("NOTHING THERE")
+                continue
+
+            time.sleep(0.8)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
+            state = self.determine_state(background_new)
             if state == "coin":
                 print("--"*10)
                 print("CLICKING COIN")
@@ -780,11 +888,19 @@ class Bot:
             if keyboard.is_pressed("q"):
                 raise KeyboardInterrupt
 
-            background_old= np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))   
+            background_old = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
             pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
-            time.sleep(1)
+            time.sleep(0.2)
             background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
 
+            # to many FPs so quick way to eliminate them
+            if not self.background_changed(background_old, background_new):
+                print("--"*10)
+                print("NOTHING THERE")
+                continue
+
+            time.sleep(0.8)
+            background_new = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
 
             state = self.determine_state(background_new)
             if state == "supply":
@@ -827,9 +943,9 @@ class Bot:
                         pyautogui.click(x=self.x+pos[1], y=self.y+pos[0])
                         time.sleep(1) 
 
-            elif not self.background_changed(background_old, background_new):
-                print("--"*10)
-                print("NOTHING THERE")
+            # elif not self.background_changed(background_old, background_new):
+            #     print("--"*10)
+            #     print("NOTHING THERE")
             else:
                 print("--"*10)
                 print("NOT SUPPLY DROP")
