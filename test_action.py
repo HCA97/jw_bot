@@ -43,26 +43,26 @@ def show_regions(shooting_zone, supply_drop_text_loc, launch_button_loc, battery
                                 battery_loc[1] - battery_loc[0],
                                 linewidth=1,edgecolor='k',facecolor='none')
     plt.gca().add_patch(rect)
-    rect = patches.Rectangle((supply_drop_resources_amount_loc[2], supply_drop_resources_amount_loc[0]),
-                                supply_drop_resources_amount_loc[3] - supply_drop_resources_amount_loc[2],
-                                supply_drop_resources_amount_loc[1] - supply_drop_resources_amount_loc[0],
-                                linewidth=1,edgecolor='y',facecolor='none')
-    plt.gca().add_patch(rect)
-    rect = patches.Rectangle((supply_drop_resources_text_loc[2], supply_drop_resources_text_loc[0]),
-                                supply_drop_resources_text_loc[3] - supply_drop_resources_text_loc[2],
-                                supply_drop_resources_text_loc[1] - supply_drop_resources_text_loc[0],
-                                linewidth=1,edgecolor='y',facecolor='none')
-    plt.gca().add_patch(rect)
-    rect = patches.Rectangle((dino_collected_amount_loc[2], dino_collected_amount_loc[0]),
-                                dino_collected_amount_loc[3] - dino_collected_amount_loc[2],
-                                dino_collected_amount_loc[1] - dino_collected_amount_loc[0],
-                                linewidth=1,edgecolor='c',facecolor='none')
-    plt.gca().add_patch(rect)
-    rect = patches.Rectangle((dino_collected_text_loc[2], dino_collected_text_loc[0]),
-                            dino_collected_text_loc[3] - dino_collected_text_loc[2],
-                            dino_collected_text_loc[1] - dino_collected_text_loc[0],
-                            linewidth=1,edgecolor='c',facecolor='none')
-    plt.gca().add_patch(rect)
+    # rect = patches.Rectangle((supply_drop_resources_amount_loc[2], supply_drop_resources_amount_loc[0]),
+    #                             supply_drop_resources_amount_loc[3] - supply_drop_resources_amount_loc[2],
+    #                             supply_drop_resources_amount_loc[1] - supply_drop_resources_amount_loc[0],
+    #                             linewidth=1,edgecolor='y',facecolor='none')
+    # plt.gca().add_patch(rect)
+    # rect = patches.Rectangle((supply_drop_resources_text_loc[2], supply_drop_resources_text_loc[0]),
+    #                             supply_drop_resources_text_loc[3] - supply_drop_resources_text_loc[2],
+    #                             supply_drop_resources_text_loc[1] - supply_drop_resources_text_loc[0],
+    #                             linewidth=1,edgecolor='y',facecolor='none')
+    # plt.gca().add_patch(rect)
+    # rect = patches.Rectangle((dino_collected_amount_loc[2], dino_collected_amount_loc[0]),
+    #                             dino_collected_amount_loc[3] - dino_collected_amount_loc[2],
+    #                             dino_collected_amount_loc[1] - dino_collected_amount_loc[0],
+    #                             linewidth=1,edgecolor='c',facecolor='none')
+    # plt.gca().add_patch(rect)
+    # rect = patches.Rectangle((dino_collected_text_loc[2], dino_collected_text_loc[0]),
+    #                         dino_collected_text_loc[3] - dino_collected_text_loc[2],
+    #                         dino_collected_text_loc[1] - dino_collected_text_loc[0],
+    #                         linewidth=1,edgecolor='c',facecolor='none')
+    # plt.gca().add_patch(rect)
 
 
 def show_points(moved_too_far_loc, dart_loc):
