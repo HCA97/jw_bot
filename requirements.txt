@@ -4,3 +4,4 @@ scikit-image
 PyAutoGUI
 pytesseract
 keyboard
+Pillow==9.5.0

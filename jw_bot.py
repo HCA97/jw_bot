@@ -23,7 +23,7 @@ class Bot:
 
 
         # get the ratios (I get it from my PC to fit other screen sizes)
-        self.shooting_zone_ratio = (230 / 831, 740 / 971, 10 / 481, 440 / 481)
+        self.shooting_zone_ratio = (230 / 831, 740 / 971, 10 / 481, 410 / 481)
         self.launch_button_loc_ratio = (650 / 831, 712 / 831, 132 / 481, 310 / 481)
         self.supply_drop_text_loc_ratio = (92 / 831, 132 / 831, 110 /481, 330 / 481)
         self.map_button_loc_ratio = (786 / 831, 222 / 481)
@@ -64,8 +64,8 @@ class Bot:
         # (R_min, G_min, B_min, R_max, G_max, B_max)
         # (R, G, B)
         # normal
-        self.special_event_color = (0, 180, 0, 50, 255, 30)
-        self.supply_drop_color = (200, 100, 0, 255, 160, 60)
+        self.special_event_color = (0, 160, 0, 50, 255, 50)
+        self.supply_drop_color = (0, 100, 200, 60, 200, 255)
         # lunar new year
         # self.special_event_color = (170, 140, 50, 230, 190, 100)
         # self.supply_drop_color = (150, 120, 0, 255, 180, 60)
@@ -73,13 +73,13 @@ class Bot:
         # self.special_event_color = (0, 140, 0, 100, 255, 100)
         # self.supply_drop_color = (180, 0, 0, 255, 100, 120)        
         # st. petersburg
-        self.special_event_color = (0, 140, 0, 45, 255, 45)
-        self.supply_drop_color = (60, 60, 0, 210, 210, 120)      
+        #self.special_event_color = (0, 140, 0, 45, 255, 45)
+        #self.supply_drop_color = (60, 60, 0, 210, 210, 120)      
 
         self.x_button_color = (117, 10, 10)
         self.gmap_loc_color = (200, 0, 0, 255, 70, 60)  
         # default
-        # self.coin_color = (180, 160, 100, 240, 220, 120)
+        self.coin_color = (180, 160, 100, 240, 220, 120)
         # lunar new year
         # self.coin_color = (200, 50, 20, 255, 140, 50)
         # winter games
@@ -92,7 +92,7 @@ class Bot:
         # self.coin_color = (130, 150, 150, 175, 175, 200)
         # self.coin_color = (175, 175, 150, 225, 225, 225)
         # st. petersburg
-        self.coin_color = (60, 60, 0, 210, 210, 120)   
+        # self.coin_color = (60, 60, 0, 210, 210, 120)   
 
         self.battery_color = (10, 30, 80)
         self.dino_loading_screen_color = (230, 230, 230)
@@ -104,7 +104,7 @@ class Bot:
 
         # extra stuff
         self.loading_screen_pic = Image.open(r'figs/loading_screen.png')
-        self.moved_too_far_pic = Image.open(r'figs/moved_too_far.PNG')
+        #self.moved_too_far_pic = Image.open(r'figs/moved_too_far.PNG')
 
         # self.coin_chests = [
         #     np.array(Image.open(r'figs/lunar_event_coin_chase_1.png')),
@@ -471,6 +471,9 @@ class Bot:
             "PECIALEVENT" in text2 or \
             text2 == "SPECIALEVENT" or \
             "DROP" in text2 or \
+            text2 == "SUDDLYDROD" or \
+            'SUPPLY' in text2 or \
+            'DROD' in text2 or \
             text2 == "SUPPLYDROP":
             state = "supply"
         elif "COIN" in text2 or "CHASE" in text2 or "NEW" in text2 or \
@@ -632,8 +635,8 @@ class Bot:
             D_ = D
 
 
-            mask = (background[:,:,0] >= 100) * \
-                   (background[:,:,1] >= 140) * \
+            mask = (background[:,:,0] >= 180) * \
+                   (background[:,:,1] >= 180) * \
                    (background[:,:,2] >= 180)  
 
             mask = filters.median(mask, np.ones((3, 3)))
@@ -756,7 +759,7 @@ class Bot:
             while self.is_dino_loading_screen(background):
                 background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
                 time.sleep(1)
-            time.sleep(1) 
+            time.sleep(2) 
             # read how much and which dino we shoot it
             
             pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
@@ -805,7 +808,7 @@ class Bot:
                 
                 time.sleep(2)
                 self.shoot_dino()
-                
+
                 # there is some bug in JW which is expected when I shoot a dino it turn to original direction
                 for _ in range(self.number_of_scrolls):
                     self.change_view()
@@ -959,8 +962,8 @@ class Bot:
     #   HELPER
     # ----------------------------------------------------------
 
-    def background_changed(self, b1, b2, threshold=1000):
+    def background_changed(self, b1, b2, threshold=2000):
         """Compare difference between two frames"""
-        diff = (b1.astype(np.float) - b2.astype(np.float))**2
+        diff = (b1.astype(float) - b2.astype(float))**2
         print("DIFF", np.mean(diff))
         return np.mean(diff) > threshold

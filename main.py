@@ -5,7 +5,7 @@ import time
 from jw_bot import Bot
 
 if __name__ == "__main__":
-    print('Press Ctrl-C to quit.')
+    print("Press 'q' to quit.")
     DEBUG = False
 
     # for changing location
