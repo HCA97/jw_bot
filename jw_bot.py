@@ -65,7 +65,7 @@ class Bot:
         # (R, G, B)
         # normal
         self.special_event_color = (0, 160, 0, 50, 255, 50)
-        self.supply_drop_color = (0, 100, 200, 60, 200, 255)
+        self.supply_drop_color = (200, 100, 0, 255, 200, 60)
         # lunar new year
         # self.special_event_color = (170, 140, 50, 230, 190, 100)
         # self.supply_drop_color = (150, 120, 0, 255, 180, 60)
@@ -492,6 +492,8 @@ class Bot:
         if keyboard.is_pressed("q"):
             raise KeyboardInterrupt
 
+        time.sleep(1)
+
         # press ctrl + shift + k to open the map
         pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2)
         time.sleep(0.5)
@@ -547,7 +549,7 @@ class Bot:
 
         pyautogui.keyUp('ctrl')
         pyautogui.keyUp('shift')
-        time.sleep(5)
+        time.sleep(25)
         # time.sleep(7.5)
 
         # click launch button incase we move so far
@@ -759,11 +761,11 @@ class Bot:
             while self.is_dino_loading_screen(background):
                 background = np.array(pyautogui.screenshot(region=(self.x, self.y, self.w, self.h)))
                 time.sleep(1)
-            time.sleep(2) 
+            time.sleep(20) 
             # read how much and which dino we shoot it
             
             pyautogui.click(x=self.x+self.w//2, y=self.y+self.h//2) 
-            time.sleep(1) 
+            time.sleep(5) 
 
     def collect_dino(self):
         """"Finds and shoots the dino"""
